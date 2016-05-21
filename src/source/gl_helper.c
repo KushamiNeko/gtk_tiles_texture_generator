@@ -65,6 +65,143 @@ void generateShader(const GLuint *shaderProgram, const char *shaderFile,
   glAttachShader(*shaderProgram, shader);
 }
 
+static int getTextureSlotInt(const GLenum textureSlot) {
+  switch (textureSlot) {
+    case GL_TEXTURE0: {
+      return 0;
+      break;
+    }
+    case GL_TEXTURE1: {
+      return 1;
+      break;
+    }
+    case GL_TEXTURE2: {
+      return 2;
+      break;
+    }
+    case GL_TEXTURE3: {
+      return 3;
+      break;
+    }
+    case GL_TEXTURE4: {
+      return 4;
+      break;
+    }
+    case GL_TEXTURE5: {
+      return 5;
+      break;
+    }
+    case GL_TEXTURE6: {
+      return 6;
+      break;
+    }
+    case GL_TEXTURE7: {
+      return 7;
+      break;
+    }
+    case GL_TEXTURE8: {
+      return 8;
+      break;
+    }
+    case GL_TEXTURE9: {
+      return 9;
+      break;
+    }
+    case GL_TEXTURE10: {
+      return 10;
+      break;
+    }
+    default: {
+      return -1;
+      break;
+    }
+  }
+}
+
+int loadTexture(const char *textureFile, GLuint *shaderProgram,
+                GLenum textureSlot, const char *textureName) {
+  int x, y, n;
+  int forceChannels = 4;
+  unsigned char *imageData = stbi_load(textureFile, &x, &y, &n, forceChannels);
+
+  if (!imageData) {
+    printf("ERROR: counld not load %s\n", textureFile);
+    return 1;
+  }
+
+  // check if the texture dimension is a power of 2
+  if ((x & (x - 1)) != 0 || (y & (y - 1)) != 0) {
+    printf("WARNING: the dimensions of the texture %s is not power of 2\n",
+           textureFile);
+  }
+
+  // flip the image data upside down because OpenGL expects that the 0 on the y
+  // axis to be at the bottom of the texture, but the image usually have y axis
+  // 0 at the top
+
+  int bytesWidth = x * 4;
+  unsigned char *top = NULL;
+  unsigned char *bottom = NULL;
+  unsigned char temp = 0;
+  int halfHeight = y / 2;
+
+  for (int row = 0; row < halfHeight; row++) {
+    top = imageData + row * bytesWidth;
+    bottom = imageData + ((y - row - 1) * bytesWidth);
+    for (int col = 0; col < bytesWidth; col++) {
+      temp = *top;
+      *top = *bottom;
+      *bottom = temp;
+      top++;
+      bottom++;
+    }
+  }
+
+  GLuint tex = 0;
+  glGenTextures(1, &tex);
+
+  // active the first OpenGL texture slot
+  glActiveTexture(textureSlot);
+  int slotIndex = getTextureSlotInt(textureSlot);
+  printf("texture: %s, slot index: %d\n", textureName, slotIndex);
+  glBindTexture(GL_TEXTURE_2D, tex);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+               imageData);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+  glActiveTexture(textureSlot);
+  int texLoc = glGetUniformLocation(*shaderProgram, textureName);
+  glUseProgram(*shaderProgram);
+  glUniform1i(texLoc, slotIndex);
+  return 0;
+}
+
+char *readShader(const char *file) {
+  // read file contents into a char *
+  char *shader_code = NULL;
+  long length;
+  FILE *f = fopen(file, "rb");
+  if (f) {
+    fseek(f, 0, SEEK_END);
+    length = ftell(f);
+    rewind(f);
+    shader_code = (char *)calloc(1, length * sizeof(char));
+    if (shader_code) {
+      fread(shader_code, sizeof(char), length, f);
+    }
+    fclose(f);
+
+    // add string end point "\0" to the end of the array
+    shader_code[length] = 0;
+  }
+
+  return shader_code;
+}
+
 #if __GL_DEBUG
 void programLinkCheck(GLuint program) {
   printf("glLinkProgram check\n");
@@ -95,25 +232,3 @@ void shaderCompileCheck(GLuint shader) {
 }
 
 #endif
-
-char *readShader(const char *file) {
-  // read file contents into a char *
-  char *shader_code = NULL;
-  long length;
-  FILE *f = fopen(file, "rb");
-  if (f) {
-    fseek(f, 0, SEEK_END);
-    length = ftell(f);
-    rewind(f);
-    shader_code = (char *)calloc(1, length * sizeof(char));
-    if (shader_code) {
-      fread(shader_code, sizeof(char), length, f);
-    }
-    fclose(f);
-
-    // add string end point "\0" to the end of the array
-    shader_code[length] = 0;
-  }
-
-  return shader_code;
-}

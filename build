@@ -1,4 +1,4 @@
-gcc `pkg-config --cflags glew glfw3`-lm -c src/source/linear_math.c \
+#gcc `pkg-config --cflags glew glfw3`-lm -c src/source/linear_math.c \
 `pkg-config --libs glew glfw3` -o bin/linear_math
 
 gcc `pkg-config --cflags gtk+-3.0 glew glfw3` -c src/source/pattern_alpha.c \
@@ -8,5 +8,5 @@ gcc `pkg-config --cflags glew glfw3` -c src/source/gl_helper.c \
 `pkg-config --libs glew glfw3` -o bin/gl_helper
 
 gcc `pkg-config --cflags gtk+-3.0 glew glfw3` \
--o bin/main bin/gl_helper bin/pattern_alpha src/main.c \
+-o bin/main bin/gl_helper bin/pattern_alpha -lstbi src/main.c \
 `pkg-config --libs gtk+-3.0 glew glfw3`

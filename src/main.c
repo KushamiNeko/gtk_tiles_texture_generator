@@ -14,6 +14,9 @@
 #define CONTROL_BOX_WIDTH 500
 #define BOX_SPACE 5
 
+#define GL_VERSION_MAJOR 4
+#define GL_VERSION_MINOR 1
+
 #define VERTEX_SHADER "src/shader/vertex_shader.vert"
 #define FRAGMENT_SHADER "src/shader/fragment_shader.frag"
 
@@ -67,11 +70,11 @@ static void glRealize(GtkGLArea *area) {
 
 void activate() {
   // building the general gtk components
-  GtkWidget *mainWinodw = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title(GTK_WINDOW(mainWinodw), "GTK Pattern Generator");
-  gtk_window_set_position(GTK_WINDOW(mainWinodw), GTK_WIN_POS_CENTER);
-  gtk_window_set_resizable(GTK_WINDOW(mainWinodw), FALSE);
-  g_signal_connect(GTK_WIDGET(mainWinodw), "destroy", G_CALLBACK(gtk_main_quit),
+  GtkWidget *mainWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title(GTK_WINDOW(mainWindow), "Pattern Generator");
+  gtk_window_set_position(GTK_WINDOW(mainWindow), GTK_WIN_POS_CENTER);
+  gtk_window_set_resizable(GTK_WINDOW(mainWindow), FALSE);
+  g_signal_connect(GTK_WIDGET(mainWindow), "destroy", G_CALLBACK(gtk_main_quit),
                    NULL);
 
   GtkWidget *mainBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, BOX_SPACE);
@@ -79,11 +82,12 @@ void activate() {
   gtk_widget_set_margin_top(GTK_WIDGET(mainBox), WIDGET_MARGIN);
   gtk_widget_set_margin_start(GTK_WIDGET(mainBox), WIDGET_MARGIN);
   gtk_widget_set_margin_end(GTK_WIDGET(mainBox), WIDGET_MARGIN);
-  gtk_container_add(GTK_CONTAINER(mainWinodw), mainBox);
+  gtk_container_add(GTK_CONTAINER(mainWindow), mainBox);
 
   GtkWidget *mainGL = gtk_gl_area_new();
   gtk_container_add(GTK_CONTAINER(mainBox), mainGL);
-  gtk_gl_area_set_required_version(GTK_GL_AREA(mainGL), 4, 1);
+  gtk_gl_area_set_required_version(GTK_GL_AREA(mainGL), GL_VERSION_MAJOR,
+                                   GL_VERSION_MINOR);
   gtk_widget_set_size_request(mainGL, WINDOW_HEIGHT, WINDOW_HEIGHT);
 
   // instead of entering GL render loop, we queue the render command when we
@@ -106,7 +110,7 @@ void activate() {
   gtk_widget_set_size_request(patternType, CONTROL_BOX_WIDTH, 35);
   gtk_container_add(GTK_CONTAINER(controlerBox), patternType);
 
-  gtk_widget_show_all(GTK_WIDGET(mainWinodw));
+  gtk_widget_show_all(GTK_WIDGET(mainWindow));
 
   // we need to fully initialize the gtk components before we perform further
   // construct
@@ -116,8 +120,8 @@ void activate() {
       constructShaderProgram(VERTEX_SHADER, FRAGMENT_SHADER);
 
   // initialization of the pattern
-  initPattern(GTK_CONTAINER(controlerBox), GTK_GL_AREA(mainGL),
-              mainShaderProgram);
+  initPattern(GTK_WINDOW(mainWindow), GTK_CONTAINER(controlerBox),
+              GTK_GL_AREA(mainGL), mainShaderProgram);
 }
 
 int main(int argc, char **argv) {

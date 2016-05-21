@@ -2,6 +2,9 @@
 #include "pattern_alpha_data.c"
 
 #define WIDGET_MARGIN 10
+#define SEPARATOR_WIDTH 25
+
+#define SYSTEM_PATH_SEPARATOR "/"
 
 struct patternData {
   GtkGLArea *glArea;
@@ -22,62 +25,305 @@ static struct patternData *newPatternData(GtkGLArea *glArea,
   return re;
 }
 
-static void colorSeedChanged(GtkRange *range, void *userData) {
-  struct patternData *user = (struct patternData *)userData;
-  double seed = gtk_range_get_value(range);
+struct controlData {
+  struct patternData *patternData;
 
-  setPatternRandColor(user->pattern, seed);
+  GtkWindow *mainWindow;
+
+  GtkWidget *widthEntry;
+  GtkWidget *heightEntry;
+  GtkWidget *numCpySlider;
+  GtkWidget *colorSeedSlider;
+  GtkWidget *colorMinSlider;
+  GtkWidget *colorMaxSlider;
+  GtkWidget *textureInfoLabel;
+};
+
+static void colorSeedChanged(GtkRange *range, void *userData) {
+  struct controlData *control = (struct controlData *)userData;
+  struct patternData *userPattern = control->patternData;
+
+  double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
+  double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
+
+  // re-construct the color of whole pattern units
+  initPatternRandColor(userPattern->pattern, colorMin, colorMax);
   // directly update the specific memory allocated for the data
-  setVBOData(&user->pattern->colorVBO, user->pattern->vertexCounts, 3,
-             user->pattern->vertexColor);
+  setVBOData(&userPattern->pattern->colorVBO,
+             userPattern->pattern->vertexCounts, 3,
+             userPattern->pattern->vertexColor);
 
   // queue openGL render
-  gtk_gl_area_queue_render(user->glArea);
+  gtk_gl_area_queue_render(userPattern->glArea);
 }
 
-static void numCopyChanged(GtkRange *range, void *userData) {
-  struct patternData *user = (struct patternData *)userData;
+static void numCpyChanged(GtkRange *range, void *userData) {
+  struct controlData *control = (struct controlData *)userData;
+  struct patternData *userPattern = control->patternData;
   unsigned int cpy = (unsigned int)gtk_range_get_value(range);
 
-  struct patternModel *pattern = patternConstruct(
-      user->glArea, user->pattern->sizeX, user->pattern->sizeY, cpy);
+  double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
+  double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
 
-  setPatternRandColor(pattern, cpy);
-  freePatternModel(user->pattern);
+  struct patternModel *pattern =
+      patternConstruct(userPattern->glArea, userPattern->pattern->sizeX,
+                       userPattern->pattern->sizeY, cpy);
 
-  user->pattern = pattern;
+  freePatternModel(userPattern->pattern);
 
-  gtk_gl_area_queue_render(user->glArea);
+  userPattern->pattern = pattern;
+  // re-construct the color of whole pattern units
+  initPatternRandColor(userPattern->pattern, colorMin, colorMax);
+
+  setVBOData(&userPattern->pattern->colorVBO,
+             userPattern->pattern->vertexCounts, 3,
+             userPattern->pattern->vertexColor);
+  // queue openGL render
+  gtk_gl_area_queue_render(userPattern->glArea);
 }
 
-static void *initControl(GtkContainer *container, void *user) {
-  GtkWidget *controlBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, BOX_SPACE);
+static void colorRangeChanged(GtkRange *range, void *userData) {
+  struct controlData *control = (struct controlData *)userData;
+  struct patternData *userPattern = control->patternData;
+
+  double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
+  double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
+
+  // only re-generate GL color data and fit it into new range
+  fitPatternRandColor(userPattern->pattern, colorMin, colorMax);
+  setVBOData(&userPattern->pattern->colorVBO,
+             userPattern->pattern->vertexCounts, 3,
+             userPattern->pattern->vertexColor);
+
+  // queue openGL render
+  gtk_gl_area_queue_render(userPattern->glArea);
+}
+
+static void dimensionButtonClicked(GtkButton *button, void *userData) {
+  struct controlData *control = (struct controlData *)userData;
+  struct patternData *userPattern = control->patternData;
+
+  const gchar *widthChar = gtk_entry_get_text(GTK_ENTRY(control->widthEntry));
+  const gchar *heightChar = gtk_entry_get_text(GTK_ENTRY(control->heightEntry));
+
+  if (strlen(widthChar) == 0 || strlen(heightChar) == 0) {
+    return;
+  }
+
+  GLfloat width = atof(widthChar);
+  GLfloat height = atof(heightChar);
+
+  double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
+  double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
+
+  struct patternModel *pattern =
+      patternConstruct(userPattern->glArea, width, height, 1);
+
+  freePatternModel(userPattern->pattern);
+
+  userPattern->pattern = pattern;
+
+  // only re-generate GL color data and fit it into new range
+  fitPatternRandColor(userPattern->pattern, colorMin, colorMax);
+  setVBOData(&userPattern->pattern->colorVBO,
+             userPattern->pattern->vertexCounts, 3,
+             userPattern->pattern->vertexColor);
+
+  gtk_range_set_value(GTK_RANGE(control->numCpySlider), 1.0f);
+
+  gtk_gl_area_queue_render(userPattern->glArea);
+}
+
+static gchar *getTextureFile(GtkWindow *parentWindow) {
+  GtkWidget *dialog = gtk_file_chooser_dialog_new(
+      "Open File", parentWindow, GTK_FILE_CHOOSER_ACTION_OPEN, "Cancel",
+      GTK_RESPONSE_CANCEL, "Open", GTK_RESPONSE_ACCEPT, NULL);
+
+  gchar *fileName = NULL;
+  gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+  if (response == GTK_RESPONSE_ACCEPT) {
+    GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
+    fileName = gtk_file_chooser_get_filename(chooser);
+  }
+
+  gtk_widget_destroy(dialog);
+  return fileName;
+}
+
+static gchar *getBaseName(gchar *filePath) {
+  gchar *baseName = NULL;
+
+  for (gchar *i = filePath; strcmp(i, "\0"); i++) {
+    if (*i == '/') {
+      baseName = i + 1;
+    }
+  }
+  return baseName;
+}
+
+static void textureInfoButtonClicked(GtkButton *button, void *userData) {
+  struct controlData *control = (struct controlData *)userData;
+  struct patternData *userPattern = control->patternData;
+
+  gchar *filePath = getTextureFile(control->mainWindow);
+  gchar *baseName = getBaseName(filePath);
+
+  if (filePath) {
+    userPattern->pattern->texturePath = filePath;
+    gtk_label_set_text(GTK_LABEL(control->textureInfoLabel), baseName);
+  }
+}
+
+static void addSeparator(GtkContainer *container,
+                         const GtkOrientation orientation,
+                         const unsigned int width, const unsigned int height) {
+  GtkWidget *separator = gtk_separator_new(orientation);
+  gtk_widget_set_size_request(separator, width, height);
+  gtk_container_add(container, separator);
+}
+
+static void *initControl(GtkWindow *mainWindow, GtkContainer *container,
+                         void *user) {
+  // initialize random generator here instead of every time the value changed
+  srand(time(NULL));
+
+  // alloc memory for controlData used by signal function
+  struct controlData *control = calloc(1, sizeof(struct controlData));
+  control->patternData = (struct patternData *)user;
+  control->mainWindow = mainWindow;
+
+  GtkWidget *controlBox;
+
+  GtkWidget *dimensionBox;
+
+  GtkWidget *widthLabel;
+  GtkWidget *widthEntry;
+  GtkWidget *heightLabel;
+  GtkWidget *heightEntry;
+
+  GtkWidget *dimensionButton;
+  GtkWidget *numCpyLabel;
+  GtkWidget *numCpySlider;
+
+  GtkWidget *colorSeedLabel;
+  GtkWidget *colorSeedSlider;
+
+  GtkWidget *colorMinLabel;
+  GtkWidget *colorMinSlider;
+
+  GtkWidget *colorMaxLabel;
+  GtkWidget *colorMaxSlider;
+
+  GtkWidget *textureLabel;
+  GtkWidget *textureInfoLabel;
+  GtkWidget *textureInfoButton;
+
+  controlBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, BOX_SPACE);
 
   gtk_container_add(container, controlBox);
 
-  GtkWidget *numCopyLabel = gtk_label_new("number copys");
-  gtk_widget_set_halign(numCopyLabel, GTK_ALIGN_START);
-  gtk_container_add(GTK_CONTAINER(controlBox), numCopyLabel);
+  addSeparator(GTK_CONTAINER(controlBox), GTK_ORIENTATION_HORIZONTAL,
+               CONTROL_BOX_WIDTH, SEPARATOR_WIDTH);
 
-  GtkWidget *numCopySlider =
-      gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1.0f, 15.0f, 1.00f);
+  dimensionBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, BOX_SPACE * 2);
+  gtk_container_add(GTK_CONTAINER(controlBox), dimensionBox);
 
-  g_signal_connect(numCopySlider, "value-changed", G_CALLBACK(numCopyChanged),
-                   user);
+  gtk_widget_set_halign(dimensionBox, GTK_ALIGN_CENTER);
 
-  gtk_container_add(GTK_CONTAINER(controlBox), numCopySlider);
+  widthLabel = gtk_label_new("width: ");
+  gtk_container_add(GTK_CONTAINER(dimensionBox), widthLabel);
 
-  GtkWidget *randColorSeedLabel = gtk_label_new("random color seed");
-  gtk_widget_set_halign(randColorSeedLabel, GTK_ALIGN_START);
-  gtk_container_add(GTK_CONTAINER(controlBox), randColorSeedLabel);
+  widthEntry = gtk_entry_new();
+  gtk_container_add(GTK_CONTAINER(dimensionBox), widthEntry);
+  control->widthEntry = widthEntry;
 
-  GtkWidget *randColorSeedSlider =
-      gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0.0f, 1.0f, 0.01f);
+  heightLabel = gtk_label_new("height: ");
+  gtk_container_add(GTK_CONTAINER(dimensionBox), heightLabel);
 
-  g_signal_connect(randColorSeedSlider, "value-changed",
-                   G_CALLBACK(colorSeedChanged), user);
+  heightEntry = gtk_entry_new();
+  gtk_container_add(GTK_CONTAINER(dimensionBox), heightEntry);
+  control->heightEntry = heightEntry;
 
-  gtk_container_add(GTK_CONTAINER(controlBox), randColorSeedSlider);
+  dimensionButton = gtk_button_new_with_label("generate!");
+  gtk_container_add(GTK_CONTAINER(controlBox), dimensionButton);
+
+  numCpyLabel = gtk_label_new("number copys");
+  gtk_widget_set_halign(numCpyLabel, GTK_ALIGN_START);
+  gtk_container_add(GTK_CONTAINER(controlBox), numCpyLabel);
+
+  numCpySlider =
+      gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1.0f, 20.0f, 1.00f);
+  control->numCpySlider = numCpySlider;
+
+  gtk_container_add(GTK_CONTAINER(controlBox), numCpySlider);
+
+  addSeparator(GTK_CONTAINER(controlBox), GTK_ORIENTATION_HORIZONTAL,
+               CONTROL_BOX_WIDTH, SEPARATOR_WIDTH);
+
+  colorSeedLabel = gtk_label_new("random color seed");
+  gtk_widget_set_halign(colorSeedLabel, GTK_ALIGN_START);
+  gtk_container_add(GTK_CONTAINER(controlBox), colorSeedLabel);
+
+  colorSeedSlider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0.0f,
+                                             1.0f, 0.000001f);
+  control->colorSeedSlider = colorSeedSlider;
+
+  gtk_container_add(GTK_CONTAINER(controlBox), colorSeedSlider);
+
+  colorMinLabel = gtk_label_new("random color min");
+  gtk_widget_set_halign(colorMinLabel, GTK_ALIGN_START);
+  gtk_container_add(GTK_CONTAINER(controlBox), colorMinLabel);
+
+  colorMinSlider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0.0f,
+                                            1.0f, 0.000001f);
+  gtk_range_set_value(GTK_RANGE(colorMinSlider), 1.0f);
+  control->colorMinSlider = colorMinSlider;
+
+  gtk_container_add(GTK_CONTAINER(controlBox), colorMinSlider);
+
+  colorMaxLabel = gtk_label_new("random color max");
+  gtk_widget_set_halign(colorMaxLabel, GTK_ALIGN_START);
+  gtk_container_add(GTK_CONTAINER(controlBox), colorMaxLabel);
+
+  colorMaxSlider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1.0f,
+                                            2.0f, 0.000001f);
+  gtk_range_set_value(GTK_RANGE(colorMaxSlider), 1.0f);
+  control->colorMaxSlider = colorMaxSlider;
+
+  gtk_container_add(GTK_CONTAINER(controlBox), colorMaxSlider);
+
+  addSeparator(GTK_CONTAINER(controlBox), GTK_ORIENTATION_HORIZONTAL,
+               CONTROL_BOX_WIDTH, SEPARATOR_WIDTH);
+
+  textureLabel = gtk_label_new("Texture:");
+  gtk_widget_set_halign(textureLabel, GTK_ALIGN_START);
+  gtk_container_add(GTK_CONTAINER(controlBox), textureLabel);
+
+  textureInfoLabel = gtk_label_new("choose a texture file");
+  // gtk_widget_set_halign(textureInfoLabel, GTK_ALIGN_CENTER);
+  // gtk_widget_set_size_request(textureInfoLabel, CONTROL_BOX_WIDTH, 15);
+  gtk_label_set_max_width_chars(GTK_LABEL(textureInfoLabel), 30);
+  gtk_label_set_line_wrap(GTK_LABEL(textureInfoLabel), TRUE);
+  gtk_label_set_line_wrap_mode(GTK_LABEL(textureInfoLabel), PANGO_WRAP_CHAR);
+  gtk_container_add(GTK_CONTAINER(controlBox), textureInfoLabel);
+
+  control->textureInfoLabel = textureInfoLabel;
+
+  textureInfoButton = gtk_button_new_with_label("Choose File");
+  gtk_container_add(GTK_CONTAINER(controlBox), textureInfoButton);
+
+  g_signal_connect(numCpySlider, "value-changed", G_CALLBACK(numCpyChanged),
+                   control);
+  g_signal_connect(dimensionButton, "clicked",
+                   G_CALLBACK(dimensionButtonClicked), control);
+  g_signal_connect(colorSeedSlider, "value-changed",
+                   G_CALLBACK(colorSeedChanged), control);
+  g_signal_connect(colorMinSlider, "value-changed",
+                   G_CALLBACK(colorRangeChanged), control);
+  g_signal_connect(colorMaxSlider, "value-changed",
+                   G_CALLBACK(colorRangeChanged), control);
+  g_signal_connect(textureInfoButton, "clicked",
+                   G_CALLBACK(textureInfoButtonClicked), control);
 
   gtk_widget_show_all(controlBox);
 }
@@ -96,11 +342,11 @@ static gboolean glRender(GtkGLArea *area, GdkGLContext *context,
   return TRUE;
 }
 
-void initPattern(GtkContainer *container, GtkGLArea *glArea,
-                 GLuint shaderProgram) {
-  struct patternModel *pattern = patternConstruct(glArea, 50, 25, 1);
+void initPattern(GtkWindow *mainWindow, GtkContainer *container,
+                 GtkGLArea *glArea, GLuint shaderProgram) {
+  struct patternModel *pattern = patternConstruct(glArea, 50, 50, 1);
   void *user = (void *)newPatternData(glArea, shaderProgram, pattern);
-  initControl(container, user);
+  initControl(mainWindow, container, user);
 
   g_signal_connect(glArea, "render", G_CALLBACK(glRender), user);
 }

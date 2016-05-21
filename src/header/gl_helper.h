@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <stb_image.h>
+
 GLuint generateVBO(const GLuint *vao, const int point_count,
                    const int vector_size, const GLfloat *data_array,
                    const int loc);
