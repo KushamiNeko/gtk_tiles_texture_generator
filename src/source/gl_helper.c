@@ -111,6 +111,47 @@ static int getTextureSlotInt(const GLenum textureSlot) {
       return 10;
       break;
     }
+    case GL_TEXTURE11: {
+      return 11;
+      break;
+    }
+    case GL_TEXTURE12: {
+      return 12;
+      break;
+    }
+    case GL_TEXTURE13: {
+      return 13;
+      break;
+    }
+    case GL_TEXTURE14: {
+      return 14;
+      break;
+    }
+    case GL_TEXTURE15: {
+      return 15;
+      break;
+    }
+    case GL_TEXTURE16: {
+      return 16;
+      break;
+    }
+    case GL_TEXTURE17: {
+      return 17;
+      break;
+    }
+    case GL_TEXTURE18: {
+      return 18;
+      break;
+    }
+    case GL_TEXTURE19: {
+      return 19;
+      break;
+    }
+    case GL_TEXTURE20: {
+      return 20;
+      break;
+    }
+
     default: {
       return -1;
       break;

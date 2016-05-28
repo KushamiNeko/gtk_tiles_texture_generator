@@ -8,25 +8,12 @@
 
 #include "header/gl_helper.h"
 #include "header/pattern_alpha.h"
-
-#define WIDGET_MARGIN 15
-#define WINDOW_HEIGHT 900
-#define CONTROL_BOX_WIDTH 500
-#define BOX_SPACE 5
-
-#define GL_VERSION_MAJOR 4
-#define GL_VERSION_MINOR 1
-
-#define VERTEX_SHADER "src/shader/vertex_shader.vert"
-#define FRAGMENT_SHADER "src/shader/fragment_shader.frag"
+#include "header/constant.h"
 
 static GLuint constructShaderProgram(const char *vertFile,
                                      const char *fragFile) {
   const char *vertexShader = readShader(vertFile);
   const char *fragmentShader = readShader(fragFile);
-
-  // g_print("vertex shader: %s\n", vertexShader);
-  // g_print("fragment shader: %s\n", fragmentShader);
 
   GLuint shaderProgram = glCreateProgram();
   generateShader(&shaderProgram, vertexShader, GL_VERTEX_SHADER);
@@ -34,7 +21,6 @@ static GLuint constructShaderProgram(const char *vertFile,
 
   __LinkProgram(shaderProgram);
 
-  // exit(0);
   return shaderProgram;
 }
 
