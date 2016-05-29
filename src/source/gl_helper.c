@@ -209,8 +209,10 @@ int loadTexture(const char *textureFile, GLuint *shaderProgram,
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                imageData);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  // set the last argument to GL_REPEAT to enable uv wraping effects
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
@@ -266,7 +268,7 @@ void shaderCompileCheck(GLuint shader) {
   int params = -1;
   glGetShaderiv(shader, GL_COMPILE_STATUS, &params);
   if (GL_TRUE != params) {
-    printf("ERROR: GL Sahder %i did not compile\n", shader);
+    printf("ERROR: GL Shader %i did not compile\n", shader);
     //_print_shader_info_log(shader);
     exit(1);
   }

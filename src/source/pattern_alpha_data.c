@@ -12,12 +12,44 @@ struct patternModel {
   GLfloat *vertexUV;
   GLfloat *vertexColor;
 
-  gchar *texturePath;
+  // gchar *texturePath;
 
   GLuint vao;
   GLuint positionVBO;
   GLuint colorVBO;
+  GLuint uvVBO;
 };
+
+// static void initTexture(struct patternModel *pattern) {
+//
+//}
+
+static void initPatternUV(struct patternModel *pattern) {
+  for (int i = 0; i < pattern->numUnits; i++) {
+    struct rectangle *rect = pattern->units[i];
+
+    int vertexUVDataCounts = pattern->units[i]->vertexCounts * 2;
+    for (int j = 0; j < vertexUVDataCounts; j++) {
+      pattern->vertexUV[(i * vertexUVDataCounts) + j] = rect->vertexUV[j];
+    }
+  }
+}
+
+static void initPatternRandUV(struct patternModel *pattern) {
+  for (int i = 0; i < pattern->numUnits; i++) {
+    genRectRandUV(pattern->units[i]);
+  }
+
+  initPatternUV(pattern);
+}
+
+static void initPatternUVScale(struct patternModel *pattern, double scaleFactor) {
+  for (int i = 0; i < pattern->numUnits; i++) {
+    scaleRectUV(pattern->units[i], scaleFactor);
+  }
+
+  initPatternUV(pattern);
+}
 
 static void initPatternGLData(struct patternModel *pattern) {
   for (int i = 0; i < pattern->numUnits; i++) {
@@ -30,11 +62,13 @@ static void initPatternGLData(struct patternModel *pattern) {
       pattern->vertexColor[(i * vertexVectorDataCounts) + j] = 1.0f;
     }
 
-    int vertexUVDataCounts = pattern->units[i]->vertexCounts * 2;
-    for (int j = 0; j < vertexUVDataCounts; j++) {
-      pattern->vertexUV[(i * vertexUVDataCounts) + j] = rect->vertexUV[j];
-    }
+    // int vertexUVDataCounts = pattern->units[i]->vertexCounts * 2;
+    // for (int j = 0; j < vertexUVDataCounts; j++) {
+    //  pattern->vertexUV[(i * vertexUVDataCounts) + j] = rect->vertexUV[j];
+    //}
   }
+
+  initPatternUV(pattern);
 }
 
 static void fitPatternRandColor(struct patternModel *pattern, float min,
@@ -122,7 +156,7 @@ static struct patternModel *patternConstruct(GtkGLArea *glArea,
                                              const unsigned int sizeY,
                                              const unsigned int cpy) {
   struct patternModel *pattern = calloc(1, sizeof(struct patternModel));
-  pattern->texturePath = NULL;
+  // pattern->texturePath = NULL;
 
   pattern->sizeX = sizeX;
   pattern->sizeY = sizeY;
@@ -147,6 +181,9 @@ static struct patternModel *patternConstruct(GtkGLArea *glArea,
   glBindVertexArray(vao);
   pattern->colorVBO =
       generateVBO(&vao, pattern->vertexCounts, 3, pattern->vertexColor, 1);
+
+  pattern->uvVBO =
+      generateVBO(&vao, pattern->vertexCounts, 2, pattern->vertexUV, 2);
 
   pattern->vao = vao;
 

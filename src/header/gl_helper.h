@@ -22,6 +22,10 @@ char *readShader(const char *file);
 
 void generateShader(const GLuint *shader_program, const char *shader_file,
                     const GLenum shader_type);
+
+int loadTexture(const char *textureFile, GLuint *shaderProgram,
+                GLenum textureSlot, const char *textureName);
+
 #if __GL_DEBUG
 void programLinkCheck(GLuint program);
 // {

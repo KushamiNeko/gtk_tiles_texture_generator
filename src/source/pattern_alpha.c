@@ -5,10 +5,19 @@
 
 struct patternData {
   GtkGLArea *glArea;
+
+  gchar *textureFile;
   GLuint shaderProgram;
 
   struct patternModel *pattern;
 };
+
+static void initTextureMap(struct patternData *patternData) {
+  if (loadTexture(patternData->textureFile, &(patternData->shaderProgram),
+                  GL_TEXTURE0, "diff_tex") != 0) {
+    g_print("Texture loading failed: %s\n", patternData->textureFile);
+  }
+}
 
 static struct patternData *newPatternData(GtkGLArea *glArea,
                                           GLuint shaderProgram,
@@ -16,13 +25,15 @@ static struct patternData *newPatternData(GtkGLArea *glArea,
   struct patternData *re = calloc(1, sizeof(struct patternData));
 
   re->glArea = glArea;
+  re->textureFile = DEFAULT_TEXTURE;
   re->shaderProgram = shaderProgram;
   re->pattern = pattern;
 
+  initTextureMap(re);
   return re;
 }
 
-void freePatternData(struct patternData *data) {
+static void freePatternData(struct patternData *data) {
   glDeleteProgram(data->shaderProgram);
   freePatternModel(data->pattern);
 }
@@ -40,7 +51,7 @@ struct widgetList *newWidgetList() {
   return re;
 }
 
-void addWidgetList(struct widgetList **list, GtkWidget *widget) {
+static void addWidgetList(struct widgetList **list, GtkWidget *widget) {
   struct widgetList *re = calloc(1, sizeof(struct widgetList));
   re->widget = widget;
   re->next = *list;
@@ -58,7 +69,7 @@ void addWidgetList(struct widgetList **list, GtkWidget *widget) {
   //}
 }
 
-void freeWidgetList(struct widgetList *list) {
+static void freeWidgetList(struct widgetList *list) {
   struct widgetList **current = &list;
   struct widgetList **next = &((*current)->next);
 
@@ -90,9 +101,11 @@ struct controlData {
   GtkWidget *colorMaxSlider;
 
   GtkWidget *textureInfoLabel;
+
+  GtkWidget *uvScaleSlider;
 };
 
-void freeControlData(struct controlData *data) {
+static void freeControlData(struct controlData *data) {
   freePatternData(data->patternData);
 
   //  gtk_widget_destroy(data->widthEntry);
@@ -102,6 +115,10 @@ void freeControlData(struct controlData *data) {
   //  gtk_widget_destroy(data->colorMinSlider);
   //  gtk_widget_destroy(data->colorMaxSlider);
   //  gtk_widget_destroy(data->textureInfoLabel);
+
+  // Gtk use reference counting to automatically clean up the resourse
+  // therefore, we can clean up the control panel simply by destroying the
+  // container
 
   freeWidgetList(data->support);
 
@@ -128,6 +145,67 @@ static void colorSeedChanged(GtkRange *range, void *userData) {
   gtk_gl_area_queue_render(userPattern->glArea);
 }
 
+static void randUVSeedChanged(GtkRange *range, void *userData) {
+  struct controlData *control = (struct controlData *)userData;
+  struct patternData *userPattern = control->patternData;
+
+  initPatternRandUV(userPattern->pattern);
+
+  setVBOData(&userPattern->pattern->uvVBO, userPattern->pattern->vertexCounts,
+             2, userPattern->pattern->vertexUV);
+
+  gtk_gl_area_queue_render(userPattern->glArea);
+}
+
+// static float fit01(float src, double newMin, double newMax) {
+//  if (src > 1.0f) {
+//    src = 1.0f;
+//  } else if (src < 0.0f) {
+//    src = 0.0f;
+//  }
+//
+//  double newRange = newMax - newMin;
+//  float re = (src * newRange) + newMin;
+//
+//  return re;
+//}
+
+static double normalizeUVScaleRange(double rangeValue) {
+  double scaleFactor;
+  if (rangeValue > 1.0f) {
+    scaleFactor = fit01(rangeValue - 1.0f, 1.0f, 10.0f);
+  } else if (rangeValue < 1.0f) {
+    scaleFactor = fit01(rangeValue, 0.1f, 1.0f);
+  } else {
+    scaleFactor = rangeValue;
+  }
+
+  return scaleFactor;
+}
+
+static void uvScaleChanged(GtkRange *range, void *userData) {
+  struct controlData *control = (struct controlData *)userData;
+  struct patternData *userPattern = control->patternData;
+
+  double rangeValue = gtk_range_get_value(GTK_RANGE(range));
+
+  double scaleFactor = normalizeUVScaleRange(rangeValue);
+  //  if (rangeValue > 1.0f) {
+  //    scaleFactor = fit01(rangeValue - 1.0f, 1.0f, 10.0f);
+  //  } else if (rangeValue < 1.0f) {
+  //    scaleFactor = fit01(rangeValue, 0.1f, 1.0f);
+  //  } else {
+  //    scaleFactor = rangeValue;
+  //  }
+
+  initPatternUVScale(userPattern->pattern, scaleFactor);
+
+  setVBOData(&userPattern->pattern->uvVBO, userPattern->pattern->vertexCounts,
+             2, userPattern->pattern->vertexUV);
+
+  gtk_gl_area_queue_render(userPattern->glArea);
+}
+
 static void numCpyChanged(GtkRange *range, void *userData) {
   struct controlData *control = (struct controlData *)userData;
   struct patternData *userPattern = control->patternData;
@@ -135,6 +213,9 @@ static void numCpyChanged(GtkRange *range, void *userData) {
 
   double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
   double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
+
+  double scaleFactor = normalizeUVScaleRange(
+      gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)));
 
   struct patternModel *pattern =
       patternConstruct(userPattern->glArea, userPattern->pattern->sizeX,
@@ -145,10 +226,16 @@ static void numCpyChanged(GtkRange *range, void *userData) {
   userPattern->pattern = pattern;
   // re-construct the color of whole pattern units
   initPatternRandColor(userPattern->pattern, colorMin, colorMax);
+  initPatternRandUV(userPattern->pattern);
+  initPatternUVScale(userPattern->pattern, scaleFactor);
 
   setVBOData(&userPattern->pattern->colorVBO,
              userPattern->pattern->vertexCounts, 3,
              userPattern->pattern->vertexColor);
+
+  setVBOData(&userPattern->pattern->uvVBO, userPattern->pattern->vertexCounts,
+             2, userPattern->pattern->vertexUV);
+
   // queue openGL render
   gtk_gl_area_queue_render(userPattern->glArea);
 }
@@ -187,6 +274,9 @@ static void dimensionButtonClicked(GtkButton *button, void *userData) {
   double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
   double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
 
+  double scaleFactor = normalizeUVScaleRange(
+      gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)));
+
   struct patternModel *pattern =
       patternConstruct(userPattern->glArea, width, height, 1);
 
@@ -196,9 +286,15 @@ static void dimensionButtonClicked(GtkButton *button, void *userData) {
 
   // only re-generate GL color data and fit it into new range
   fitPatternRandColor(userPattern->pattern, colorMin, colorMax);
+  initPatternRandUV(userPattern->pattern);
+  initPatternUVScale(userPattern->pattern, scaleFactor);
+
   setVBOData(&userPattern->pattern->colorVBO,
              userPattern->pattern->vertexCounts, 3,
              userPattern->pattern->vertexColor);
+
+  setVBOData(&userPattern->pattern->uvVBO, userPattern->pattern->vertexCounts,
+             2, userPattern->pattern->vertexUV);
 
   gtk_range_set_value(GTK_RANGE(control->numCpySlider), 1.0f);
 
@@ -237,22 +333,27 @@ static void textureInfoButtonClicked(GtkButton *button, void *userData) {
   struct patternData *userPattern = control->patternData;
 
   gchar *filePath = getTextureFile(control->mainWindow);
+  if (filePath == NULL) {
+    return;
+  }
+
   gchar *baseName = getBaseName(filePath);
 
   if (filePath) {
-    userPattern->pattern->texturePath = filePath;
+    // userPattern->pattern->texturePath = filePath;
+    userPattern->textureFile = filePath;
     gtk_label_set_text(GTK_LABEL(control->textureInfoLabel), baseName);
   }
 }
 
-static void *addSeparator(GtkContainer *container,
-                          const GtkOrientation orientation,
-                          const unsigned int width, const unsigned int height) {
+static void addSeparator(GtkContainer *container,
+                         const GtkOrientation orientation,
+                         const unsigned int width, const unsigned int height) {
   GtkWidget *separator = gtk_separator_new(orientation);
   gtk_widget_set_size_request(separator, width, height);
   gtk_container_add(container, separator);
 
-  return separator;
+  // return separator;
 }
 
 static struct controlData *initControl(GtkWindow *mainWindow,
@@ -295,6 +396,12 @@ static struct controlData *initControl(GtkWindow *mainWindow,
   GtkWidget *textureLabel;
   GtkWidget *textureInfoLabel;
   GtkWidget *textureInfoButton;
+
+  GtkWidget *randUVSeedLabel;
+  GtkWidget *randUVSeedSlider;
+
+  GtkWidget *uvScaleLabel;
+  GtkWidget *uvScaleSlider;
 
   controlBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, BOX_SPACE);
   addWidgetList(support, controlBox);
@@ -393,7 +500,8 @@ static struct controlData *initControl(GtkWindow *mainWindow,
   gtk_container_add(GTK_CONTAINER(controlBox), textureLabel);
   // addWidgetList(support, textureLabel);
 
-  textureInfoLabel = gtk_label_new("choose a texture file");
+  // textureInfoLabel = gtk_label_new("choose a texture file");
+  textureInfoLabel = gtk_label_new(DEFAULT_TEXTURE);
   gtk_label_set_max_width_chars(GTK_LABEL(textureInfoLabel), 30);
   gtk_label_set_line_wrap(GTK_LABEL(textureInfoLabel), TRUE);
   gtk_label_set_line_wrap_mode(GTK_LABEL(textureInfoLabel), PANGO_WRAP_CHAR);
@@ -403,6 +511,29 @@ static struct controlData *initControl(GtkWindow *mainWindow,
 
   textureInfoButton = gtk_button_new_with_label("Choose File");
   gtk_container_add(GTK_CONTAINER(controlBox), textureInfoButton);
+
+  randUVSeedLabel = gtk_label_new("Random UV Offset");
+  gtk_widget_set_halign(randUVSeedLabel, GTK_ALIGN_START);
+  gtk_container_add(GTK_CONTAINER(controlBox), randUVSeedLabel);
+  // addWidgetList(support, colorMinLabel);
+
+  randUVSeedSlider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0.0f,
+                                              1.0f, 0.000001f);
+  gtk_range_set_value(GTK_RANGE(randUVSeedSlider), 0.0f);
+
+  gtk_container_add(GTK_CONTAINER(controlBox), randUVSeedSlider);
+
+  uvScaleLabel = gtk_label_new("UV Scale");
+  gtk_widget_set_halign(uvScaleLabel, GTK_ALIGN_START);
+  gtk_container_add(GTK_CONTAINER(controlBox), uvScaleLabel);
+  // addWidgetList(support, colorMinLabel);
+
+  uvScaleSlider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0.0f,
+                                           2.0f, 0.000001f);
+  gtk_range_set_value(GTK_RANGE(uvScaleSlider), 1.0f);
+  control->uvScaleSlider = uvScaleSlider;
+
+  gtk_container_add(GTK_CONTAINER(controlBox), uvScaleSlider);
 
   // addWidgetList(support, textureInfoButton);
 
@@ -418,6 +549,10 @@ static struct controlData *initControl(GtkWindow *mainWindow,
                    G_CALLBACK(colorRangeChanged), control);
   g_signal_connect(textureInfoButton, "clicked",
                    G_CALLBACK(textureInfoButtonClicked), control);
+  g_signal_connect(randUVSeedSlider, "value-changed",
+                   G_CALLBACK(randUVSeedChanged), control);
+  g_signal_connect(uvScaleSlider, "value-changed", G_CALLBACK(uvScaleChanged),
+                   control);
 
   gtk_widget_show_all(controlBox);
 

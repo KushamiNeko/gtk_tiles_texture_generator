@@ -22,12 +22,25 @@ struct rectangle {
   GLfloat randColor;
 };
 
-static void constructRectangleVertex(struct rectangle *rect) {
+static void constructRectangleVertexPos(struct rectangle *rect) {
   for (int i = 0; i < rect->vertexCounts; i++) {
     for (int j = 0; j < 3; j++) {
       rect->vertexPosition[(i * 3) + j] =
           rect->position[rect->vertexOrder[i]][j];
     }
+
+    // for (int j = 0; j < 2; j++) {
+    //   rect->vertexUV[(i * 2) + j] = rect->uv[rect->vertexOrder[i]][j];
+    // }
+  }
+}
+
+static void constructRectangleVertexUV(struct rectangle *rect) {
+  for (int i = 0; i < rect->vertexCounts; i++) {
+    // for (int j = 0; j < 3; j++) {
+    //   rect->vertexPosition[(i * 3) + j] =
+    //       rect->position[rect->vertexOrder[i]][j];
+    // }
 
     for (int j = 0; j < 2; j++) {
       rect->vertexUV[(i * 2) + j] = rect->uv[rect->vertexOrder[i]][j];
@@ -137,7 +150,8 @@ static struct rectangle *newRectangle() {
   re->vertexUV = (GLfloat *)calloc(12, sizeof(GLfloat));
   re->vertexColor = (GLfloat *)calloc(18, sizeof(GLfloat));
 
-  constructRectangleVertex(re);
+  constructRectangleVertexPos(re);
+  constructRectangleVertexUV(re);
   genRectRandColor(re);
 
   return re;
@@ -149,7 +163,7 @@ static void moveRectangle(struct rectangle *rect, GLfloat x, GLfloat y) {
     rect->position[i][1] += y;
   }
 
-  constructRectangleVertex(rect);
+  constructRectangleVertexPos(rect);
 }
 
 static void moveRectangleTo(struct rectangle *rect, GLfloat x, GLfloat y) {
@@ -158,35 +172,144 @@ static void moveRectangleTo(struct rectangle *rect, GLfloat x, GLfloat y) {
   moveRectangle(rect, mX, mY);
 }
 
-static void setRectWidth(struct rectangle *rect, GLfloat width) {
-  for (int i = 0; i < 2; i++) {
-    rect->position[rect->xMin[i]][0] = rect->position[rect->xMax[0]][0] - width;
-  }
-
-  rect->width = width;
-  constructRectangleVertex(rect);
-}
-
-static void setRectHeight(struct rectangle *rect, GLfloat height) {
-  for (int i = 0; i < 2; i++) {
-    rect->position[rect->yMin[i]][1] =
-        rect->position[rect->yMax[0]][1] - height;
-  }
-
-  rect->height = height;
-  constructRectangleVertex(rect);
-}
+// static GLfloat uvWrap(GLfloat pos) {
+//  if (pos < 0) {
+//    return (1.0f + pos);
+//  }
+//
+//  if (pos > 1.0f) {
+//    return (pos - 1.0f);
+//  }
+//
+//  return pos;
+//}
 
 static void initRectUVScale(struct rectangle *rect) {
+  GLfloat xMax = rect->uv[rect->xMin[0]][0] + 1.0f;
+  GLfloat yMax = rect->uv[rect->yMin[0]][1] + 1.0f;
+  rect->uv[rect->yMax[0]][1] = yMax;
+  rect->uv[rect->yMax[1]][1] = yMax;
+  rect->uv[rect->xMax[0]][0] = xMax;
+  rect->uv[rect->xMax[1]][0] = xMax;
+
   if (rect->width > rect->height) {
     GLfloat scaleFactor = rect->height / rect->width;
+
+    GLfloat width = rect->uv[rect->xMax[0]][0] - rect->uv[rect->xMin[0]][0];
+    scaleFactor = rect->uv[rect->yMin[0]][1] + (width * scaleFactor);
+
     rect->uv[rect->yMax[0]][1] = scaleFactor;
     rect->uv[rect->yMax[1]][1] = scaleFactor;
-  } else {
+  } else if (rect->width < rect->height) {
     GLfloat scaleFactor = rect->width / rect->height;
+
+    GLfloat height = rect->uv[rect->yMax[0]][1] - rect->uv[rect->yMin[0]][1];
+    scaleFactor = rect->uv[rect->xMin[0]][0] + (height * scaleFactor);
+
     rect->uv[rect->xMax[0]][0] = scaleFactor;
     rect->uv[rect->xMax[1]][0] = scaleFactor;
   }
+}
+
+static void setRectWidth(struct rectangle *rect, GLfloat width) {
+  // for (int i = 0; i < 2; i++) {
+  //  rect->position[rect->xMin[i]][0] = rect->position[rect->xMax[0]][0] -
+  //  width;
+  //}
+
+  rect->position[rect->xMin[0]][0] = rect->position[rect->xMax[0]][0] - width;
+  rect->position[rect->xMin[1]][0] = rect->position[rect->xMax[0]][0] - width;
+
+  rect->width = width;
+
+  initRectUVScale(rect);
+
+  constructRectangleVertexPos(rect);
+  constructRectangleVertexUV(rect);
+}
+
+static void setRectHeight(struct rectangle *rect, GLfloat height) {
+  //  for (int i = 0; i < 2; i++) {
+  //    rect->position[rect->yMin[i]][1] =
+  //        rect->position[rect->yMax[0]][1] - height;
+  //  }
+
+  // explicitily performing the sequential operation rather than construct a
+  // loop to prevent the overhead of loop construction in this simple case
+
+  rect->position[rect->yMin[0]][1] = rect->position[rect->yMax[0]][1] - height;
+  rect->position[rect->yMin[1]][1] = rect->position[rect->yMax[0]][1] - height;
+
+  rect->height = height;
+
+  initRectUVScale(rect);
+
+  constructRectangleVertexPos(rect);
+  constructRectangleVertexUV(rect);
+}
+
+static void moveRectUV(struct rectangle *rect, GLfloat x, GLfloat y) {
+  for (int i = 0; i < 4; i++) {
+    rect->uv[i][0] += x;
+    rect->uv[i][1] += y;
+  }
+
+  constructRectangleVertexUV(rect);
+}
+
+static void scaleRectUV(struct rectangle *rect, double scaleFactor) {
+  initRectUVScale(rect);
+
+  GLfloat width = rect->uv[rect->xMax[0]][0] - rect->uv[rect->xMin[0]][0];
+  GLfloat height = rect->uv[rect->yMax[0]][1] - rect->uv[rect->yMin[0]][1];
+
+  GLfloat widthScale = width * scaleFactor;
+  GLfloat heightScale = height * scaleFactor;
+
+  GLfloat xMax = rect->uv[rect->xMin[0]][0] + widthScale;
+  GLfloat yMax = rect->uv[rect->yMin[0]][1] + heightScale;
+
+  rect->uv[rect->xMax[0]][0] = xMax;
+  rect->uv[rect->xMax[1]][0] = xMax;
+
+  rect->uv[rect->yMax[0]][1] = yMax;
+  rect->uv[rect->yMax[1]][1] = yMax;
+
+  // OpenGL does not work in the way of explicitily wrap the uv position
+  // set the third argument of glTexParameteriv function to GL_REPEAT instead
+
+  //  GLfloat width =
+  //      rect->uv[rect->xMax[0]][0] > rect->uv[rect->xMin[0]][0]
+  //          ? rect->uv[rect->xMax[0]][0] - rect->uv[rect->xMin[0]][0]
+  //          : (1.0f - rect->uv[rect->xMin[0]][0]) +
+  //          rect->uv[rect->xMax[0]][0];
+  //
+  //  GLfloat height =
+  //      rect->uv[rect->yMax[0]][1] > rect->uv[rect->yMin[0]][1]
+  //          ? rect->uv[rect->yMax[0]][1] - rect->uv[rect->yMin[0]][1]
+  //          : (1.0f - rect->uv[rect->yMin[0]][1]) +
+  //          rect->uv[rect->yMax[0]][1];
+  //
+  //  GLfloat widthScale = width * scaleFactor;
+  //  GLfloat heightScale = height * scaleFactor;
+  //
+  //  GLfloat xMax = uvWrap(rect->uv[rect->xMin[0]][0] + widthScale);
+  //  GLfloat yMax = uvWrap(rect->uv[rect->yMin[0]][1] + heightScale);
+
+  // rect->uv[rect->xMax[0]][0] = xMax;
+  // rect->uv[rect->xMax[1]][0] = xMax;
+
+  // rect->uv[rect->yMax[0]][1] = yMax;
+  // rect->uv[rect->yMax[1]][1] = yMax;
+
+  constructRectangleVertexUV(rect);
+}
+
+static void genRectRandUV(struct rectangle *rect) {
+  GLfloat amountX = (GLfloat)rand() / (GLfloat)RAND_MAX;
+  GLfloat amountY = (GLfloat)rand() / (GLfloat)RAND_MAX;
+
+  moveRectUV(rect, amountX, amountY);
 }
 
 static void freeRectangle(struct rectangle *re) {
