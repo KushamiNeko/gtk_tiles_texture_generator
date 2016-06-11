@@ -17,6 +17,8 @@
 #define VERTEX_SHADER "src/shader/vertex_shader.vert"
 #define FRAGMENT_SHADER "src/shader/fragment_shader.frag"
 
-#define DEFAULT_TEXTURE "uv_checker.jpg"
+#define FRAGMENT_SHADER_WIREFRAME "src/shader/fragment_shader_wireframe.frag"
+
+#define DEFAULT_TEXTURE "uv_checker.png"
 
 #endif

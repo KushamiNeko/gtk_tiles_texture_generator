@@ -52,6 +52,9 @@ static void glRealize(GtkGLArea *area) {
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
   glFrontFace(GL_CCW);
+
+  // drawing line segment of the polygon
+  // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void activate() {

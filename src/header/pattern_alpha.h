@@ -9,10 +9,11 @@
 #include <string.h>
 
 #include "gl_helper.h"
+#include "constant.h"
 
-#define WINDOW_HEIGHT 900
-#define CONTROL_BOX_WIDTH 500
-#define BOX_SPACE 5
+//#define WINDOW_HEIGHT 900
+//#define CONTROL_BOX_WIDTH 500
+//#define BOX_SPACE 5
 
 void initPattern(GtkWindow *mainWindow, GtkContainer *container,
                  GtkGLArea *glArea, GLuint shaderProgram);

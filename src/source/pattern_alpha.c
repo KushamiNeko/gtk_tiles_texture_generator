@@ -1,8 +1,6 @@
 #include "../header/pattern_alpha.h"
 #include "pattern_alpha_data.c"
 
-#include "../header/constant.h"
-
 struct patternData {
   GtkGLArea *glArea;
 
@@ -568,6 +566,9 @@ static gboolean glRender(GtkGLArea *area, GdkGLContext *context,
   glUseProgram(user->shaderProgram);
   glBindVertexArray(user->pattern->vao);
   glDrawArrays(GL_TRIANGLES, 0, user->pattern->vertexCounts);
+
+  // drawing wireframe
+  // glDrawArrays(GL_LINES, 0, user->pattern->vertexCounts);
 
   glFlush();
   return TRUE;

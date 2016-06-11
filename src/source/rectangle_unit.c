@@ -1,3 +1,7 @@
+#include <math.h>
+
+#define ONE_DEG_IN_RAD (2.0f * M_PI) / 360.0f
+
 struct rectangle {
   GLfloat **position;
   GLfloat **uv;
@@ -28,20 +32,11 @@ static void constructRectangleVertexPos(struct rectangle *rect) {
       rect->vertexPosition[(i * 3) + j] =
           rect->position[rect->vertexOrder[i]][j];
     }
-
-    // for (int j = 0; j < 2; j++) {
-    //   rect->vertexUV[(i * 2) + j] = rect->uv[rect->vertexOrder[i]][j];
-    // }
   }
 }
 
 static void constructRectangleVertexUV(struct rectangle *rect) {
   for (int i = 0; i < rect->vertexCounts; i++) {
-    // for (int j = 0; j < 3; j++) {
-    //   rect->vertexPosition[(i * 3) + j] =
-    //       rect->position[rect->vertexOrder[i]][j];
-    // }
-
     for (int j = 0; j < 2; j++) {
       rect->vertexUV[(i * 2) + j] = rect->uv[rect->vertexOrder[i]][j];
     }
@@ -49,10 +44,16 @@ static void constructRectangleVertexUV(struct rectangle *rect) {
 }
 
 static float fit01(float src, double newMin, double newMax) {
+  // if (src > 1.0f) {
+  //  src = 1.0f;
+  //} else if (src < 0.0f) {
+  //  src = 0.0f;
+  //}
+
   if (src > 1.0f) {
-    src = 1.0f;
+    src = newMax;
   } else if (src < 0.0f) {
-    src = 0.0f;
+    src = newMin;
   }
 
   double newRange = newMax - newMin;
@@ -172,18 +173,6 @@ static void moveRectangleTo(struct rectangle *rect, GLfloat x, GLfloat y) {
   moveRectangle(rect, mX, mY);
 }
 
-// static GLfloat uvWrap(GLfloat pos) {
-//  if (pos < 0) {
-//    return (1.0f + pos);
-//  }
-//
-//  if (pos > 1.0f) {
-//    return (pos - 1.0f);
-//  }
-//
-//  return pos;
-//}
-
 static void initRectUVScale(struct rectangle *rect) {
   GLfloat xMax = rect->uv[rect->xMin[0]][0] + 1.0f;
   GLfloat yMax = rect->uv[rect->yMin[0]][1] + 1.0f;
@@ -212,11 +201,8 @@ static void initRectUVScale(struct rectangle *rect) {
 }
 
 static void setRectWidth(struct rectangle *rect, GLfloat width) {
-  // for (int i = 0; i < 2; i++) {
-  //  rect->position[rect->xMin[i]][0] = rect->position[rect->xMax[0]][0] -
-  //  width;
-  //}
-
+  // explicitily performing the sequential operation rather than construct a
+  // loop to prevent the overhead of loop construction in this simple case
   rect->position[rect->xMin[0]][0] = rect->position[rect->xMax[0]][0] - width;
   rect->position[rect->xMin[1]][0] = rect->position[rect->xMax[0]][0] - width;
 
@@ -229,11 +215,6 @@ static void setRectWidth(struct rectangle *rect, GLfloat width) {
 }
 
 static void setRectHeight(struct rectangle *rect, GLfloat height) {
-  //  for (int i = 0; i < 2; i++) {
-  //    rect->position[rect->yMin[i]][1] =
-  //        rect->position[rect->yMax[0]][1] - height;
-  //  }
-
   // explicitily performing the sequential operation rather than construct a
   // loop to prevent the overhead of loop construction in this simple case
 
@@ -305,9 +286,26 @@ static void scaleRectUV(struct rectangle *rect, double scaleFactor) {
   constructRectangleVertexUV(rect);
 }
 
+static void rotateRectUV(struct rectangle *rect, float degree) {
+  float rotateRad = degree * ONE_DEG_IN_RAD;
+
+  for (int i = 0; i < 4; i++) {
+    float oldX = rect->uv[i][0];
+    float oldY = rect->uv[i][1];
+
+    rect->uv[i][0] = (oldX * cos(rotateRad)) - (oldY * sin(rotateRad));
+    rect->uv[i][1] = (oldY * cos(rotateRad)) + (oldX * sin(rotateRad));
+  }
+
+  constructRectangleVertexUV(rect);
+}
+
 static void genRectRandUV(struct rectangle *rect) {
   GLfloat amountX = (GLfloat)rand() / (GLfloat)RAND_MAX;
   GLfloat amountY = (GLfloat)rand() / (GLfloat)RAND_MAX;
+
+  amountX = (amountX * 2.0f) - 1.0f;
+  amountY = (amountY * 2.0f) - 1.0f;
 
   moveRectUV(rect, amountX, amountY);
 }

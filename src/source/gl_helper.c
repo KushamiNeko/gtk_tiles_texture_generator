@@ -232,7 +232,7 @@ char *readShader(const char *file) {
     fseek(f, 0, SEEK_END);
     length = ftell(f);
     rewind(f);
-    shader_code = (char *)calloc(1, length * sizeof(char));
+    shader_code = (char *)calloc(1, length * sizeof(char) + 1);
     if (shader_code) {
       fread(shader_code, sizeof(char), length, f);
     }

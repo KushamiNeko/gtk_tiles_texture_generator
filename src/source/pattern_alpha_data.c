@@ -12,17 +12,17 @@ struct patternModel {
   GLfloat *vertexUV;
   GLfloat *vertexColor;
 
+  GLfloat *wireframeColor;
+
   // gchar *texturePath;
 
   GLuint vao;
   GLuint positionVBO;
-  GLuint colorVBO;
   GLuint uvVBO;
-};
+  GLuint colorVBO;
 
-// static void initTexture(struct patternModel *pattern) {
-//
-//}
+  GLuint wireframeColorVBO;
+};
 
 static void initPatternUV(struct patternModel *pattern) {
   for (int i = 0; i < pattern->numUnits; i++) {
@@ -43,7 +43,8 @@ static void initPatternRandUV(struct patternModel *pattern) {
   initPatternUV(pattern);
 }
 
-static void initPatternUVScale(struct patternModel *pattern, double scaleFactor) {
+static void initPatternUVScale(struct patternModel *pattern,
+                               double scaleFactor) {
   for (int i = 0; i < pattern->numUnits; i++) {
     scaleRectUV(pattern->units[i], scaleFactor);
   }
@@ -131,6 +132,8 @@ static void modelGenerate(struct patternModel *pattern,
   pattern->vertexPosition = calloc(pattern->vertexCounts * 3, sizeof(GLfloat));
   pattern->vertexUV = calloc(pattern->vertexCounts * 2, sizeof(GLfloat));
   pattern->vertexColor = calloc(pattern->vertexCounts * 3, sizeof(GLfloat));
+
+  pattern->wireframeColor = calloc(pattern->vertexCounts * 3, sizeof(GLfloat));
 
   initPatternGLData(pattern);
 }
