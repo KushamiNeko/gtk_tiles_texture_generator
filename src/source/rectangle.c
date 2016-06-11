@@ -1,32 +1,33 @@
-#include <math.h>
+//#include <math.h>
+#include "../header/rectangle.h"
 
 #define ONE_DEG_IN_RAD (2.0f * M_PI) / 360.0f
 
-struct rectangle {
-  GLfloat **position;
-  GLfloat **uv;
+// struct rectangle {
+//  GLfloat **position;
+//  GLfloat **uv;
+//
+//  GLfloat width;
+//  GLfloat height;
+//
+//  unsigned int pivot;
+//  unsigned int *xMax;
+//  unsigned int *xMin;
+//  unsigned int *yMax;
+//  unsigned int *yMin;
+//
+//  unsigned int *vertexOrder;
+//
+//  GLfloat *vertexPosition;
+//  GLfloat *vertexUV;
+//  GLfloat *vertexColor;
+//
+//  int vertexCounts;
+//
+//  GLfloat randColor;
+//};
 
-  GLfloat width;
-  GLfloat height;
-
-  unsigned int pivot;
-  unsigned int *xMax;
-  unsigned int *xMin;
-  unsigned int *yMax;
-  unsigned int *yMin;
-
-  unsigned int *vertexOrder;
-
-  GLfloat *vertexPosition;
-  GLfloat *vertexUV;
-  GLfloat *vertexColor;
-
-  int vertexCounts;
-
-  GLfloat randColor;
-};
-
-static void constructRectangleVertexPos(struct rectangle *rect) {
+static void constructRectangleVertexPos(struct Rectangle *rect) {
   for (int i = 0; i < rect->vertexCounts; i++) {
     for (int j = 0; j < 3; j++) {
       rect->vertexPosition[(i * 3) + j] =
@@ -35,7 +36,7 @@ static void constructRectangleVertexPos(struct rectangle *rect) {
   }
 }
 
-static void constructRectangleVertexUV(struct rectangle *rect) {
+static void constructRectangleVertexUV(struct Rectangle *rect) {
   for (int i = 0; i < rect->vertexCounts; i++) {
     for (int j = 0; j < 2; j++) {
       rect->vertexUV[(i * 2) + j] = rect->uv[rect->vertexOrder[i]][j];
@@ -43,55 +44,54 @@ static void constructRectangleVertexUV(struct rectangle *rect) {
   }
 }
 
-static float fit01(float src, double newMin, double newMax) {
-  // if (src > 1.0f) {
-  //  src = 1.0f;
-  //} else if (src < 0.0f) {
-  //  src = 0.0f;
-  //}
-
-  if (src > 1.0f) {
-    src = newMax;
-  } else if (src < 0.0f) {
-    src = newMin;
-  }
-
-  double newRange = newMax - newMin;
-  float re = (src * newRange) + newMin;
-
-  return re;
-}
-
-static void genRectRandColor(struct rectangle *rect) {
-  rect->randColor = (GLfloat)rand() / (GLfloat)RAND_MAX;
-
+static void constructRectangleVertexColor(struct Rectangle *rect) {
   for (int i = 0; i < 18; i++) {
-    rect->vertexColor[i] = rect->randColor;
+    rect->vertexColor[i] = rect->color;
   }
 }
 
-static struct rectangle *newRectangle() {
-  struct rectangle *re = calloc(1, sizeof(struct rectangle));
+// static float fit01(float src, double newMin, double newMax) {
+//  // if (src > 1.0f) {
+//  //  src = 1.0f;
+//  //} else if (src < 0.0f) {
+//  //  src = 0.0f;
+//  //}
+//
+//  if (src > 1.0f) {
+//    src = newMax;
+//  } else if (src < 0.0f) {
+//    src = newMin;
+//  }
+//
+//  double newRange = newMax - newMin;
+//  float re = (src * newRange) + newMin;
+//
+//  return re;
+//}
+//
+
+struct Rectangle *rectangleNew() {
+  struct Rectangle *re = defenseCalloc(1, sizeof(struct Rectangle));
   re->vertexCounts = 6;
 
-  re->position = (GLfloat **)calloc(4, sizeof(GLfloat *));
-  re->uv = (GLfloat **)calloc(4, sizeof(GLfloat *));
+  re->position = (GLfloat **)defenseCalloc(4, sizeof(GLfloat *));
+  re->uv = (GLfloat **)defenseCalloc(4, sizeof(GLfloat *));
 
   re->width = 1.0f;
   re->height = 1.0f;
 
   // we want to modified the existing position data instead of allocating new
   // memory space
-  // re->pivot = (GLfloat **)calloc(1, sizeof(GLfloat *));
+  // re->pivot = (GLfloat **)defenseCalloc(1, sizeof(GLfloat *));
 
-  re->xMax = (unsigned int *)calloc(2, sizeof(unsigned int));
-  re->xMin = (unsigned int *)calloc(2, sizeof(unsigned int));
-  re->yMax = (unsigned int *)calloc(2, sizeof(unsigned int));
-  re->yMin = (unsigned int *)calloc(2, sizeof(unsigned int));
+  re->xMax = (unsigned int *)defenseCalloc(2, sizeof(unsigned int));
+  re->xMin = (unsigned int *)defenseCalloc(2, sizeof(unsigned int));
+  re->yMax = (unsigned int *)defenseCalloc(2, sizeof(unsigned int));
+  re->yMin = (unsigned int *)defenseCalloc(2, sizeof(unsigned int));
 
   for (int i = 0; i < 4; i++) {
-    re->position[i] = (GLfloat *)calloc(3, sizeof(GLfloat));
-    re->uv[i] = (GLfloat *)calloc(2, sizeof(GLfloat));
+    re->position[i] = (GLfloat *)defenseCalloc(3, sizeof(GLfloat));
+    re->uv[i] = (GLfloat *)defenseCalloc(2, sizeof(GLfloat));
   }
 
   re->position[0][0] = 1.0f;
@@ -137,7 +137,7 @@ static struct rectangle *newRectangle() {
   re->pivot = 0;
 
   re->vertexOrder =
-      (unsigned int *)calloc(re->vertexCounts, sizeof(unsigned int));
+      (unsigned int *)defenseCalloc(re->vertexCounts, sizeof(unsigned int));
 
   re->vertexOrder[0] = 0;
   re->vertexOrder[1] = 1;
@@ -147,18 +147,20 @@ static struct rectangle *newRectangle() {
   re->vertexOrder[4] = 3;
   re->vertexOrder[5] = 0;
 
-  re->vertexPosition = (GLfloat *)calloc(18, sizeof(GLfloat));
-  re->vertexUV = (GLfloat *)calloc(12, sizeof(GLfloat));
-  re->vertexColor = (GLfloat *)calloc(18, sizeof(GLfloat));
+  re->vertexPosition = (GLfloat *)defenseCalloc(18, sizeof(GLfloat));
+  re->vertexUV = (GLfloat *)defenseCalloc(12, sizeof(GLfloat));
+  re->vertexColor = (GLfloat *)defenseCalloc(18, sizeof(GLfloat));
 
   constructRectangleVertexPos(re);
   constructRectangleVertexUV(re);
-  genRectRandColor(re);
+
+  re->color = 1.0f;
+  constructRectangleVertexColor(re);
 
   return re;
 }
 
-static void moveRectangle(struct rectangle *rect, GLfloat x, GLfloat y) {
+void rectangleMove(struct Rectangle *rect, GLfloat x, GLfloat y) {
   for (int i = 0; i < 4; i++) {
     rect->position[i][0] += x;
     rect->position[i][1] += y;
@@ -167,13 +169,13 @@ static void moveRectangle(struct rectangle *rect, GLfloat x, GLfloat y) {
   constructRectangleVertexPos(rect);
 }
 
-static void moveRectangleTo(struct rectangle *rect, GLfloat x, GLfloat y) {
+void rectangleMoveTo(struct Rectangle *rect, GLfloat x, GLfloat y) {
   GLfloat mX = x - rect->position[rect->pivot][0];
   GLfloat mY = y - rect->position[rect->pivot][1];
-  moveRectangle(rect, mX, mY);
+  rectangleMove(rect, mX, mY);
 }
 
-static void initRectUVScale(struct rectangle *rect) {
+static void initRectUVScale(struct Rectangle *rect) {
   GLfloat xMax = rect->uv[rect->xMin[0]][0] + 1.0f;
   GLfloat yMax = rect->uv[rect->yMin[0]][1] + 1.0f;
   rect->uv[rect->yMax[0]][1] = yMax;
@@ -200,7 +202,7 @@ static void initRectUVScale(struct rectangle *rect) {
   }
 }
 
-static void setRectWidth(struct rectangle *rect, GLfloat width) {
+void rectangleSetWidth(struct Rectangle *rect, GLfloat width) {
   // explicitily performing the sequential operation rather than construct a
   // loop to prevent the overhead of loop construction in this simple case
   rect->position[rect->xMin[0]][0] = rect->position[rect->xMax[0]][0] - width;
@@ -214,7 +216,7 @@ static void setRectWidth(struct rectangle *rect, GLfloat width) {
   constructRectangleVertexUV(rect);
 }
 
-static void setRectHeight(struct rectangle *rect, GLfloat height) {
+void rectangleSetHeight(struct Rectangle *rect, GLfloat height) {
   // explicitily performing the sequential operation rather than construct a
   // loop to prevent the overhead of loop construction in this simple case
 
@@ -229,7 +231,17 @@ static void setRectHeight(struct rectangle *rect, GLfloat height) {
   constructRectangleVertexUV(rect);
 }
 
-static void moveRectUV(struct rectangle *rect, GLfloat x, GLfloat y) {
+void rectangleSetColorValue(struct Rectangle *rect, GLfloat colorValue) {
+  if (colorValue < 0.0f || colorValue > 1.0f) {
+    printf("Invalid color value for rectangle: %f\n", colorValue);
+    return;
+  }
+  rect->color = colorValue;
+
+  constructRectangleVertexColor(rect);
+}
+
+void rectangleMoveUV(struct Rectangle *rect, GLfloat x, GLfloat y) {
   for (int i = 0; i < 4; i++) {
     rect->uv[i][0] += x;
     rect->uv[i][1] += y;
@@ -238,7 +250,7 @@ static void moveRectUV(struct rectangle *rect, GLfloat x, GLfloat y) {
   constructRectangleVertexUV(rect);
 }
 
-static void scaleRectUV(struct rectangle *rect, double scaleFactor) {
+void rectangleScaleUV(struct Rectangle *rect, double scaleFactor) {
   initRectUVScale(rect);
 
   GLfloat width = rect->uv[rect->xMax[0]][0] - rect->uv[rect->xMin[0]][0];
@@ -286,7 +298,7 @@ static void scaleRectUV(struct rectangle *rect, double scaleFactor) {
   constructRectangleVertexUV(rect);
 }
 
-static void rotateRectUV(struct rectangle *rect, float degree) {
+void rectangleRotateUV(struct Rectangle *rect, float degree) {
   float rotateRad = degree * ONE_DEG_IN_RAD;
 
   for (int i = 0; i < 4; i++) {
@@ -300,17 +312,17 @@ static void rotateRectUV(struct rectangle *rect, float degree) {
   constructRectangleVertexUV(rect);
 }
 
-static void genRectRandUV(struct rectangle *rect) {
-  GLfloat amountX = (GLfloat)rand() / (GLfloat)RAND_MAX;
-  GLfloat amountY = (GLfloat)rand() / (GLfloat)RAND_MAX;
+// static void genRectRandUV(struct rectangle *rect) {
+//  GLfloat amountX = (GLfloat)rand() / (GLfloat)RAND_MAX;
+//  GLfloat amountY = (GLfloat)rand() / (GLfloat)RAND_MAX;
+//
+//  amountX = (amountX * 2.0f) - 1.0f;
+//  amountY = (amountY * 2.0f) - 1.0f;
+//
+//  moveRectUV(rect, amountX, amountY);
+//}
 
-  amountX = (amountX * 2.0f) - 1.0f;
-  amountY = (amountY * 2.0f) - 1.0f;
-
-  moveRectUV(rect, amountX, amountY);
-}
-
-static void freeRectangle(struct rectangle *re) {
+void rectangleFree(struct Rectangle *re) {
   for (int i = 0; i < 4; i++) {
     free(re->position[i]);
     free(re->uv[i]);

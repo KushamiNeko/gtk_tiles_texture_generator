@@ -1,93 +1,96 @@
 #include "../header/pattern_alpha.h"
-#include "pattern_alpha_data.c"
 
-struct patternData {
+struct PatternData {
   GtkGLArea *glArea;
 
   gchar *textureFile;
   GLuint shaderProgram;
 
-  struct patternModel *pattern;
+  struct PatternModel *pattern;
 };
 
-static void initTextureMap(struct patternData *patternData) {
+static void patternDataInitTexMap(struct PatternData *patternData) {
   if (loadTexture(patternData->textureFile, &(patternData->shaderProgram),
                   GL_TEXTURE0, "diff_tex") != 0) {
     g_print("Texture loading failed: %s\n", patternData->textureFile);
   }
 }
 
-static struct patternData *newPatternData(GtkGLArea *glArea,
+static struct PatternData *patternDataNew(GtkGLArea *glArea,
                                           GLuint shaderProgram,
-                                          struct patternModel *pattern) {
-  struct patternData *re = calloc(1, sizeof(struct patternData));
+                                          struct PatternModel *pattern) {
+  struct PatternData *re =
+      (struct PatternData *)defenseCalloc(1, sizeof(struct PatternData));
 
   re->glArea = glArea;
+
   re->textureFile = DEFAULT_TEXTURE;
+
   re->shaderProgram = shaderProgram;
   re->pattern = pattern;
 
-  initTextureMap(re);
+  patternDataInitTexMap(re);
   return re;
 }
 
-static void freePatternData(struct patternData *data) {
-  glDeleteProgram(data->shaderProgram);
-  freePatternModel(data->pattern);
+static void patternDataFree(struct PatternData *data) {
+  // glDeleteProgram(data->shaderProgram);
+  patternModelFree(data->pattern);
 }
 
-struct widgetList {
-  GtkWidget *widget;
-  struct widgetList *next;
-};
+// struct widgetList {
+//  GtkWidget *widget;
+//  struct widgetList *next;
+//};
+//
+// struct widgetList *newWidgetList() {
+//  struct widgetList *re = calloc(1, sizeof(struct widgetList));
+//  re->widget = NULL;
+//  re->next = NULL;
+//
+//  return re;
+//}
+//
+// static void addWidgetList(struct widgetList **list, GtkWidget *widget) {
+//  struct widgetList *re = calloc(1, sizeof(struct widgetList));
+//  re->widget = widget;
+//  re->next = *list;
+//
+//  *list = re;
+//
+//  // struct widgetList **p = &list;
+//  // while (1) {
+//  //  if ((*p)->next == NULL) {
+//  //    (*p)->next = re;
+//  //    return;
+//  //  }
+//
+//  //  p = &((*p)->next);
+//  //}
+//}
+//
+// static void freeWidgetList(struct widgetList *list) {
+//  struct widgetList **current = &list;
+//  struct widgetList **next = &((*current)->next);
+//
+//  while (1) {
+//    gtk_widget_destroy((*current)->widget);
+//    free(*current);
+//    current = next;
+//    if (*current == NULL) {
+//      return;
+//    }
+//
+//    next = &((*current)->next);
+//  }
+//}
 
-struct widgetList *newWidgetList() {
-  struct widgetList *re = calloc(1, sizeof(struct widgetList));
-  re->widget = NULL;
-  re->next = NULL;
-
-  return re;
-}
-
-static void addWidgetList(struct widgetList **list, GtkWidget *widget) {
-  struct widgetList *re = calloc(1, sizeof(struct widgetList));
-  re->widget = widget;
-  re->next = *list;
-
-  *list = re;
-
-  // struct widgetList **p = &list;
-  // while (1) {
-  //  if ((*p)->next == NULL) {
-  //    (*p)->next = re;
-  //    return;
-  //  }
-
-  //  p = &((*p)->next);
-  //}
-}
-
-static void freeWidgetList(struct widgetList *list) {
-  struct widgetList **current = &list;
-  struct widgetList **next = &((*current)->next);
-
-  while (1) {
-    gtk_widget_destroy((*current)->widget);
-    free(*current);
-    current = next;
-    if (*current == NULL) {
-      return;
-    }
-
-    next = &((*current)->next);
-  }
-}
-
-struct controlData {
-  struct patternData *patternData;
-  struct widgetList *support;
+struct ControlData {
+  struct PatternData *patternData;
+  // struct widgetList *support;
 
   GtkWindow *mainWindow;
+  GtkWidget *controlBox;
 
   GtkWidget *widthEntry;
   GtkWidget *heightEntry;
@@ -103,8 +106,8 @@ struct controlData {
   GtkWidget *uvScaleSlider;
 };
 
-static void freeControlData(struct controlData *data) {
-  freePatternData(data->patternData);
+static void controlDataFree(struct ControlData *data) {
+  patternDataFree(data->patternData);
 
   //  gtk_widget_destroy(data->widthEntry);
   //  gtk_widget_destroy(data->heightEntry);
@@ -118,7 +121,8 @@ static void freeControlData(struct controlData *data) {
   // therefore, we can clean up the control panel simply by destroying the
   // container
 
-  freeWidgetList(data->support);
+  gtk_widget_destroy(data->controlBox);
+  // freeWidgetList(data->support);
 
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT);
@@ -126,14 +130,16 @@ static void freeControlData(struct controlData *data) {
 }
 
 static void colorSeedChanged(GtkRange *range, void *userData) {
-  struct controlData *control = (struct controlData *)userData;
-  struct patternData *userPattern = control->patternData;
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *userPattern = control->patternData;
 
   double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
   double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
 
   // re-construct the color of whole pattern units
-  initPatternRandColor(userPattern->pattern, colorMin, colorMax);
+  // initPatternRandColor(userPattern->pattern, colorMin, colorMax);
+  patternModelRandomizeColor(userPattern->pattern);
+  patternModelFitColor(userPattern->pattern, colorMin, colorMax);
   // directly update the specific memory allocated for the data
   setVBOData(&userPattern->pattern->colorVBO,
              userPattern->pattern->vertexCounts, 3,
@@ -144,29 +150,17 @@ static void colorSeedChanged(GtkRange *range, void *userData) {
 }
 
 static void randUVSeedChanged(GtkRange *range, void *userData) {
-  struct controlData *control = (struct controlData *)userData;
-  struct patternData *userPattern = control->patternData;
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *userPattern = control->patternData;
 
-  initPatternRandUV(userPattern->pattern);
+  // initPatternRandUV(userPattern->pattern);
+  patternModelRandomizeUV(userPattern->pattern);
 
   setVBOData(&userPattern->pattern->uvVBO, userPattern->pattern->vertexCounts,
              2, userPattern->pattern->vertexUV);
 
   gtk_gl_area_queue_render(userPattern->glArea);
 }
-
-// static float fit01(float src, double newMin, double newMax) {
-//  if (src > 1.0f) {
-//    src = 1.0f;
-//  } else if (src < 0.0f) {
-//    src = 0.0f;
-//  }
-//
-//  double newRange = newMax - newMin;
-//  float re = (src * newRange) + newMin;
-//
-//  return re;
-//}
 
 static double normalizeUVScaleRange(double rangeValue) {
   double scaleFactor;
@@ -182,21 +176,14 @@ static double normalizeUVScaleRange(double rangeValue) {
 }
 
 static void uvScaleChanged(GtkRange *range, void *userData) {
-  struct controlData *control = (struct controlData *)userData;
-  struct patternData *userPattern = control->patternData;
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *userPattern = control->patternData;
 
   double rangeValue = gtk_range_get_value(GTK_RANGE(range));
 
   double scaleFactor = normalizeUVScaleRange(rangeValue);
-  //  if (rangeValue > 1.0f) {
-  //    scaleFactor = fit01(rangeValue - 1.0f, 1.0f, 10.0f);
-  //  } else if (rangeValue < 1.0f) {
-  //    scaleFactor = fit01(rangeValue, 0.1f, 1.0f);
-  //  } else {
-  //    scaleFactor = rangeValue;
-  //  }
 
-  initPatternUVScale(userPattern->pattern, scaleFactor);
+  patternModelScaleUV(userPattern->pattern, scaleFactor);
 
   setVBOData(&userPattern->pattern->uvVBO, userPattern->pattern->vertexCounts,
              2, userPattern->pattern->vertexUV);
@@ -205,8 +192,8 @@ static void uvScaleChanged(GtkRange *range, void *userData) {
 }
 
 static void numCpyChanged(GtkRange *range, void *userData) {
-  struct controlData *control = (struct controlData *)userData;
-  struct patternData *userPattern = control->patternData;
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *userPattern = control->patternData;
   unsigned int cpy = (unsigned int)gtk_range_get_value(range);
 
   double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
@@ -215,17 +202,18 @@ static void numCpyChanged(GtkRange *range, void *userData) {
   double scaleFactor = normalizeUVScaleRange(
       gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)));
 
-  struct patternModel *pattern =
-      patternConstruct(userPattern->glArea, userPattern->pattern->sizeX,
-                       userPattern->pattern->sizeY, cpy);
+  struct PatternModel *pattern =
+      patternModelNew(userPattern->glArea, userPattern->pattern->sizeX,
+                      userPattern->pattern->sizeY, cpy);
 
-  freePatternModel(userPattern->pattern);
+  patternModelFree(userPattern->pattern);
 
   userPattern->pattern = pattern;
   // re-construct the color of whole pattern units
-  initPatternRandColor(userPattern->pattern, colorMin, colorMax);
-  initPatternRandUV(userPattern->pattern);
-  initPatternUVScale(userPattern->pattern, scaleFactor);
+  patternModelRandomizeColor(userPattern->pattern);
+  patternModelFitColor(userPattern->pattern, colorMin, colorMax);
+  patternModelRandomizeUV(userPattern->pattern);
+  patternModelScaleUV(userPattern->pattern, scaleFactor);
 
   setVBOData(&userPattern->pattern->colorVBO,
              userPattern->pattern->vertexCounts, 3,
@@ -239,14 +227,14 @@ static void numCpyChanged(GtkRange *range, void *userData) {
 }
 
 static void colorRangeChanged(GtkRange *range, void *userData) {
-  struct controlData *control = (struct controlData *)userData;
-  struct patternData *userPattern = control->patternData;
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *userPattern = control->patternData;
 
   double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
   double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
 
   // only re-generate GL color data and fit it into new range
-  fitPatternRandColor(userPattern->pattern, colorMin, colorMax);
+  patternModelFitColor(userPattern->pattern, colorMin, colorMax);
   setVBOData(&userPattern->pattern->colorVBO,
              userPattern->pattern->vertexCounts, 3,
              userPattern->pattern->vertexColor);
@@ -256,8 +244,8 @@ static void colorRangeChanged(GtkRange *range, void *userData) {
 }
 
 static void dimensionButtonClicked(GtkButton *button, void *userData) {
-  struct controlData *control = (struct controlData *)userData;
-  struct patternData *userPattern = control->patternData;
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *userPattern = control->patternData;
 
   const gchar *widthChar = gtk_entry_get_text(GTK_ENTRY(control->widthEntry));
   const gchar *heightChar = gtk_entry_get_text(GTK_ENTRY(control->heightEntry));
@@ -275,17 +263,18 @@ static void dimensionButtonClicked(GtkButton *button, void *userData) {
   double scaleFactor = normalizeUVScaleRange(
       gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)));
 
-  struct patternModel *pattern =
-      patternConstruct(userPattern->glArea, width, height, 1);
+  struct PatternModel *pattern =
+      patternModelNew(userPattern->glArea, width, height, 1);
 
-  freePatternModel(userPattern->pattern);
+  patternModelFree(userPattern->pattern);
 
   userPattern->pattern = pattern;
 
   // only re-generate GL color data and fit it into new range
-  fitPatternRandColor(userPattern->pattern, colorMin, colorMax);
-  initPatternRandUV(userPattern->pattern);
-  initPatternUVScale(userPattern->pattern, scaleFactor);
+  patternModelRandomizeColor(userPattern->pattern);
+  patternModelFitColor(userPattern->pattern, colorMin, colorMax);
+  patternModelRandomizeUV(userPattern->pattern);
+  patternModelScaleUV(userPattern->pattern, scaleFactor);
 
   setVBOData(&userPattern->pattern->colorVBO,
              userPattern->pattern->vertexCounts, 3,
@@ -327,8 +316,8 @@ static gchar *getBaseName(gchar *filePath) {
 }
 
 static void textureInfoButtonClicked(GtkButton *button, void *userData) {
-  struct controlData *control = (struct controlData *)userData;
-  struct patternData *userPattern = control->patternData;
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *userPattern = control->patternData;
 
   gchar *filePath = getTextureFile(control->mainWindow);
   if (filePath == NULL) {
@@ -354,18 +343,18 @@ static void addSeparator(GtkContainer *container,
   // return separator;
 }
 
-static struct controlData *initControl(GtkWindow *mainWindow,
+static struct ControlData *initControl(GtkWindow *mainWindow,
                                        GtkContainer *container, void *user) {
   // initialize random generator here instead of every time the value changed
   srand(time(NULL));
 
   // alloc memory for controlData used by signal function
-  struct controlData *control = calloc(1, sizeof(struct controlData));
+  struct ControlData *control = defenseCalloc(1, sizeof(struct ControlData));
 
-  control->patternData = (struct patternData *)user;
+  control->patternData = (struct PatternData *)user;
 
-  control->support = NULL;
-  struct widgetList **support = &(control->support);
+  //  control->support = NULL;
+  //  struct widgetList **support = &(control->support);
 
   control->mainWindow = mainWindow;
 
@@ -402,9 +391,10 @@ static struct controlData *initControl(GtkWindow *mainWindow,
   GtkWidget *uvScaleSlider;
 
   controlBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, BOX_SPACE);
-  addWidgetList(support, controlBox);
+  // addWidgetList(support, controlBox);
 
   gtk_container_add(container, controlBox);
+  control->controlBox = controlBox;
 
   addSeparator(GTK_CONTAINER(controlBox), GTK_ORIENTATION_HORIZONTAL,
                CONTROL_BOX_WIDTH, SEPARATOR_WIDTH);
@@ -559,7 +549,7 @@ static struct controlData *initControl(GtkWindow *mainWindow,
 
 static gboolean glRender(GtkGLArea *area, GdkGLContext *context,
                          void *userData) {
-  struct patternData *user = (struct patternData *)userData;
+  struct PatternData *user = (struct PatternData *)userData;
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT);
 
@@ -576,9 +566,9 @@ static gboolean glRender(GtkGLArea *area, GdkGLContext *context,
 
 void initPattern(GtkWindow *mainWindow, GtkContainer *container,
                  GtkGLArea *glArea, GLuint shaderProgram) {
-  struct patternModel *pattern = patternConstruct(glArea, 50, 50, 1);
-  void *user = (void *)newPatternData(glArea, shaderProgram, pattern);
-  struct controlData *control = initControl(mainWindow, container, user);
+  struct PatternModel *pattern = patternModelNew(glArea, 50, 50, 1);
+  void *user = (void *)patternDataNew(glArea, shaderProgram, pattern);
+  struct ControlData *control = initControl(mainWindow, container, user);
 
   g_signal_connect(glArea, "render", G_CALLBACK(glRender), user);
 }
