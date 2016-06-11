@@ -1,4 +1,4 @@
-#include "../header/pattern_model.h"
+#include "../header/pattern_alpha_model.h"
 
 // struct PatternModel {
 //  unsigned int sizeX;

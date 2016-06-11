@@ -1,5 +1,5 @@
-#ifndef PATTERN_MODEL_H
-#define PATTERN_MODEL_H
+#ifndef PATTERN_ALPHA_MODEL_H
+#define PATTERN_ALPHA_MODEL_H
 
 #include <GL/glew.h>
 #include <gtk-3.0/gtk/gtk.h>

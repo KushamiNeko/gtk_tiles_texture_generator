@@ -11,15 +11,9 @@
 #include "gl_helper.h"
 #include "constant.h"
 
-#include "pattern_model.h"
+#include "pattern_alpha_model.h"
 #include "../../../general/header/general_helper.h"
 
-void *patternAlphaNew(GtkWindow *mainWindow, GtkContainer *container,
-                      GtkGLArea *glArea, GLuint shaderProgram);
-
-void patternAlphaFree(void *patternAlpha);
-
-// void *initPattern(GtkWindow *mainWindow, GtkContainer *container,
-//                  GtkGLArea *glArea, GLuint shaderProgram);
+void *patternAlphaNew();
 
 #endif

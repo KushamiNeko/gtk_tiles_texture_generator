@@ -34,60 +34,12 @@ static struct PatternData *patternDataNew(GtkGLArea *glArea,
 }
 
 static void patternDataFree(struct PatternData *data) {
-  // glDeleteProgram(data->shaderProgram);
   patternModelFree(data->pattern);
+  free(data);
 }
-
-// struct widgetList {
-//  GtkWidget *widget;
-//  struct widgetList *next;
-//};
-//
-// struct widgetList *newWidgetList() {
-//  struct widgetList *re = calloc(1, sizeof(struct widgetList));
-//  re->widget = NULL;
-//  re->next = NULL;
-//
-//  return re;
-//}
-//
-// static void addWidgetList(struct widgetList **list, GtkWidget *widget) {
-//  struct widgetList *re = calloc(1, sizeof(struct widgetList));
-//  re->widget = widget;
-//  re->next = *list;
-//
-//  *list = re;
-//
-//  // struct widgetList **p = &list;
-//  // while (1) {
-//  //  if ((*p)->next == NULL) {
-//  //    (*p)->next = re;
-//  //    return;
-//  //  }
-//
-//  //  p = &((*p)->next);
-//  //}
-//}
-//
-// static void freeWidgetList(struct widgetList *list) {
-//  struct widgetList **current = &list;
-//  struct widgetList **next = &((*current)->next);
-//
-//  while (1) {
-//    gtk_widget_destroy((*current)->widget);
-//    free(*current);
-//    current = next;
-//    if (*current == NULL) {
-//      return;
-//    }
-//
-//    next = &((*current)->next);
-//  }
-//}
 
 struct ControlData {
   struct PatternData *patternData;
-  // struct widgetList *support;
 
   GtkWindow *mainWindow;
   GtkWidget *controlBox;
@@ -109,20 +61,12 @@ struct ControlData {
 static void controlDataFree(struct ControlData *data) {
   patternDataFree(data->patternData);
 
-  //  gtk_widget_destroy(data->widthEntry);
-  //  gtk_widget_destroy(data->heightEntry);
-  //  gtk_widget_destroy(data->numCpySlider);
-  //  gtk_widget_destroy(data->colorSeedSlider);
-  //  gtk_widget_destroy(data->colorMinSlider);
-  //  gtk_widget_destroy(data->colorMaxSlider);
-  //  gtk_widget_destroy(data->textureInfoLabel);
-
   // Gtk use reference counting to automatically clean up the resourse
   // therefore, we can clean up the control panel simply by destroying the
   // container
 
   gtk_widget_destroy(data->controlBox);
-  // freeWidgetList(data->support);
+  free(data);
 
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT);
@@ -137,9 +81,9 @@ static void colorSeedChanged(GtkRange *range, void *userData) {
   double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
 
   // re-construct the color of whole pattern units
-  // initPatternRandColor(userPattern->pattern, colorMin, colorMax);
   patternModelRandomizeColor(userPattern->pattern);
   patternModelFitColor(userPattern->pattern, colorMin, colorMax);
+
   // directly update the specific memory allocated for the data
   setVBOData(&userPattern->pattern->colorVBO,
              userPattern->pattern->vertexCounts, 3,
@@ -153,7 +97,6 @@ static void randUVSeedChanged(GtkRange *range, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
   struct PatternData *userPattern = control->patternData;
 
-  // initPatternRandUV(userPattern->pattern);
   patternModelRandomizeUV(userPattern->pattern);
 
   setVBOData(&userPattern->pattern->uvVBO, userPattern->pattern->vertexCounts,
@@ -327,7 +270,6 @@ static void textureInfoButtonClicked(GtkButton *button, void *userData) {
   gchar *baseName = getBaseName(filePath);
 
   if (filePath) {
-    // userPattern->pattern->texturePath = filePath;
     userPattern->textureFile = filePath;
     gtk_label_set_text(GTK_LABEL(control->textureInfoLabel), baseName);
   }
@@ -339,8 +281,6 @@ static void addSeparator(GtkContainer *container,
   GtkWidget *separator = gtk_separator_new(orientation);
   gtk_widget_set_size_request(separator, width, height);
   gtk_container_add(container, separator);
-
-  // return separator;
 }
 
 static struct ControlData *initControl(GtkWindow *mainWindow,
@@ -352,9 +292,6 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   struct ControlData *control = defenseCalloc(1, sizeof(struct ControlData));
 
   control->patternData = (struct PatternData *)user;
-
-  //  control->support = NULL;
-  //  struct widgetList **support = &(control->support);
 
   control->mainWindow = mainWindow;
 
@@ -391,7 +328,6 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   GtkWidget *uvScaleSlider;
 
   controlBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, BOX_SPACE);
-  // addWidgetList(support, controlBox);
 
   gtk_container_add(container, controlBox);
   control->controlBox = controlBox;
@@ -399,17 +335,13 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   addSeparator(GTK_CONTAINER(controlBox), GTK_ORIENTATION_HORIZONTAL,
                CONTROL_BOX_WIDTH, SEPARATOR_WIDTH);
 
-  // addWidgetList(support, dimensionSeparator);
-
   dimensionBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, BOX_SPACE * 2);
   gtk_container_add(GTK_CONTAINER(controlBox), dimensionBox);
-  // addWidgetList(support, dimensionBox);
 
   gtk_widget_set_halign(dimensionBox, GTK_ALIGN_CENTER);
 
   widthLabel = gtk_label_new("width: ");
   gtk_container_add(GTK_CONTAINER(dimensionBox), widthLabel);
-  // addWidgetList(support, widthLabel);
 
   widthEntry = gtk_entry_new();
   gtk_container_add(GTK_CONTAINER(dimensionBox), widthEntry);
@@ -417,7 +349,6 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
 
   heightLabel = gtk_label_new("height: ");
   gtk_container_add(GTK_CONTAINER(dimensionBox), heightLabel);
-  // addWidgetList(support, heightLabel);
 
   heightEntry = gtk_entry_new();
   gtk_container_add(GTK_CONTAINER(dimensionBox), heightEntry);
@@ -425,12 +356,10 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
 
   dimensionButton = gtk_button_new_with_label("generate!");
   gtk_container_add(GTK_CONTAINER(controlBox), dimensionButton);
-  // addWidgetList(support, dimensionButton);
 
   numCpyLabel = gtk_label_new("number copys");
   gtk_widget_set_halign(numCpyLabel, GTK_ALIGN_START);
   gtk_container_add(GTK_CONTAINER(controlBox), numCpyLabel);
-  // addWidgetList(support, numCpyLabel);
 
   numCpySlider =
       gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1.0f, 20.0f, 1.00f);
@@ -441,12 +370,9 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   addSeparator(GTK_CONTAINER(controlBox), GTK_ORIENTATION_HORIZONTAL,
                CONTROL_BOX_WIDTH, SEPARATOR_WIDTH);
 
-  // addWidgetList(support, colorSeparator);
-
   colorSeedLabel = gtk_label_new("random color seed");
   gtk_widget_set_halign(colorSeedLabel, GTK_ALIGN_START);
   gtk_container_add(GTK_CONTAINER(controlBox), colorSeedLabel);
-  // addWidgetList(support, colorSeedLabel);
 
   colorSeedSlider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0.0f,
                                              1.0f, 0.000001f);
@@ -457,7 +383,6 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   colorMinLabel = gtk_label_new("random color min");
   gtk_widget_set_halign(colorMinLabel, GTK_ALIGN_START);
   gtk_container_add(GTK_CONTAINER(controlBox), colorMinLabel);
-  // addWidgetList(support, colorMinLabel);
 
   colorMinSlider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0.0f,
                                             1.0f, 0.000001f);
@@ -469,7 +394,6 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   colorMaxLabel = gtk_label_new("random color max");
   gtk_widget_set_halign(colorMaxLabel, GTK_ALIGN_START);
   gtk_container_add(GTK_CONTAINER(controlBox), colorMaxLabel);
-  // addWidgetList(support, colorMaxLabel);
 
   colorMaxSlider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1.0f,
                                             2.0f, 0.000001f);
@@ -481,14 +405,10 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   addSeparator(GTK_CONTAINER(controlBox), GTK_ORIENTATION_HORIZONTAL,
                CONTROL_BOX_WIDTH, SEPARATOR_WIDTH);
 
-  // addWidgetList(support, textureSeparator);
-
   textureLabel = gtk_label_new("Texture:");
   gtk_widget_set_halign(textureLabel, GTK_ALIGN_START);
   gtk_container_add(GTK_CONTAINER(controlBox), textureLabel);
-  // addWidgetList(support, textureLabel);
 
-  // textureInfoLabel = gtk_label_new("choose a texture file");
   textureInfoLabel = gtk_label_new(DEFAULT_TEXTURE);
   gtk_label_set_max_width_chars(GTK_LABEL(textureInfoLabel), 30);
   gtk_label_set_line_wrap(GTK_LABEL(textureInfoLabel), TRUE);
@@ -503,7 +423,6 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   randUVSeedLabel = gtk_label_new("Random UV Offset");
   gtk_widget_set_halign(randUVSeedLabel, GTK_ALIGN_START);
   gtk_container_add(GTK_CONTAINER(controlBox), randUVSeedLabel);
-  // addWidgetList(support, colorMinLabel);
 
   randUVSeedSlider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0.0f,
                                               1.0f, 0.000001f);
@@ -514,7 +433,6 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   uvScaleLabel = gtk_label_new("UV Scale");
   gtk_widget_set_halign(uvScaleLabel, GTK_ALIGN_START);
   gtk_container_add(GTK_CONTAINER(controlBox), uvScaleLabel);
-  // addWidgetList(support, colorMinLabel);
 
   uvScaleSlider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0.0f,
                                            2.0f, 0.000001f);
@@ -522,8 +440,6 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   control->uvScaleSlider = uvScaleSlider;
 
   gtk_container_add(GTK_CONTAINER(controlBox), uvScaleSlider);
-
-  // addWidgetList(support, textureInfoButton);
 
   g_signal_connect(numCpySlider, "value-changed", G_CALLBACK(numCpyChanged),
                    control);
@@ -564,11 +480,40 @@ static gboolean glRender(GtkGLArea *area, GdkGLContext *context,
   return TRUE;
 }
 
-void initPattern(GtkWindow *mainWindow, GtkContainer *container,
-                 GtkGLArea *glArea, GLuint shaderProgram) {
+static void *initPattern(GtkWindow *mainWindow, GtkContainer *container,
+                         GtkGLArea *glArea, GLuint shaderProgram) {
   struct PatternModel *pattern = patternModelNew(glArea, 50, 50, 1);
   void *user = (void *)patternDataNew(glArea, shaderProgram, pattern);
   struct ControlData *control = initControl(mainWindow, container, user);
 
   g_signal_connect(glArea, "render", G_CALLBACK(glRender), user);
+
+  return (void *)control;
+}
+
+struct PatternAlpha {
+  void *(*initPattern)(GtkWindow *mainWindow, GtkContainer *container,
+                       GtkGLArea *glArea, GLuint shaderProgram);
+  void (*freePattern)(void *control);
+  void *patternControl;
+
+  gchar *patternName;
+};
+
+static void patternAlphaFree(void *pattern) {
+  struct PatternAlpha *fr = (struct PatternAlpha *)pattern;
+  controlDataFree((struct ControlData *)fr->patternControl);
+  free(fr);
+}
+
+void *patternAlphaNew() {
+  struct PatternAlpha *re =
+      (struct PatternAlpha *)defenseCalloc(1, sizeof(struct PatternAlpha));
+  re->initPattern = initPattern;
+  re->freePattern = patternAlphaFree;
+  re->patternControl = NULL;
+
+  re->patternName = "Pattern Alpha";
+
+  return (void *)re;
 }

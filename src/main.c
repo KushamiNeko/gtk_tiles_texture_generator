@@ -1,14 +1,32 @@
 #include <gtk-3.0/gtk/gtk.h>
 
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
-//#include <stdio.h>
-//#include <stdlib.h>
 
 #include "header/gl_helper.h"
 #include "header/pattern_alpha.h"
 #include "header/constant.h"
+
+struct PatternControl {
+  void *(*initPattern)(GtkWindow *mainWindow, GtkContainer *container,
+                       GtkGLArea *glArea, GLuint shaderProgram);
+  void (*freePattern)(void *control);
+
+  void *patternControl;
+  gchar *patternName;
+};
+
+static void *initPattern(struct PatternControl *control, GtkWindow *mainWindow,
+                         GtkContainer *container, GtkGLArea *glArea,
+                         GLuint shaderProgram) {
+  control->patternControl =
+      control->initPattern(mainWindow, container, glArea, shaderProgram);
+}
+
+static void freePattern(struct PatternControl *control) {
+  control->freePattern(control);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static GLuint constructShaderProgram(const char *vertFile,
                                      const char *fragFile) {
@@ -52,12 +70,9 @@ static void glRealize(GtkGLArea *area) {
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
   glFrontFace(GL_CCW);
-
-  // drawing line segment of the polygon
-  // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void activate() {
+static void activate() {
   // building the general gtk components
   GtkWidget *mainWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_title(GTK_WINDOW(mainWindow), "Pattern Generator");
@@ -104,17 +119,27 @@ void activate() {
   // we need to fully initialize the gtk components before we perform further
   // construct
 
-  // GLuint mainShaderProgram = 0;
   GLuint mainShaderProgram =
       constructShaderProgram(VERTEX_SHADER, FRAGMENT_SHADER);
 
+  void *patternAlpha = patternAlphaNew();
+
+  initPattern((struct PatternControl *)patternAlpha, GTK_WINDOW(mainWindow),
+              GTK_CONTAINER(controlerBox), GTK_GL_AREA(mainGL),
+              mainShaderProgram);
+
+  // freePattern((struct PatternControl *)patternAlpha);
+
   // initialization of the pattern
-  initPattern(GTK_WINDOW(mainWindow), GTK_CONTAINER(controlerBox),
-              GTK_GL_AREA(mainGL), mainShaderProgram);
+  //  initPattern(GTK_WINDOW(mainWindow), GTK_CONTAINER(controlerBox),
+  //              GTK_GL_AREA(mainGL), mainShaderProgram);
 }
 
 int main(int argc, char **argv) {
   gtk_init(&argc, &argv);
+
+  // void *patternAlpha = patternAlphaNew();
+
   activate();
   gtk_main();
 
