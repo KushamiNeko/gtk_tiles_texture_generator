@@ -6,12 +6,17 @@
 
 #include "rectangle.h"
 #include "constant.h"
-#include "gl_helper.h"
-#include "../../../general/header/general_helper.h"
+//#include "gl_helper.h"
+#include "../../../general/src/header/general_helper.h"
+//#include "../../../general/src/header/general_list.h"
+#include "../../../general/src/header/gl_helper.h"
 
 struct PatternModel {
   unsigned int sizeX;
   unsigned int sizeY;
+
+  unsigned int numWidth;
+  unsigned int numHeight;
 
   struct Rectangle **units;
   unsigned int numUnits;
@@ -21,29 +26,35 @@ struct PatternModel {
   GLfloat *vertexUV;
   GLfloat *vertexColor;
 
-  GLfloat *wireframeColor;
-
   GLuint vao;
   GLuint positionVBO;
   GLuint uvVBO;
   GLuint colorVBO;
+
+  struct PatternModel *seamlessModel;
 };
 
-// void patternModelInitUV(struct PatternModel *pattern);
+extern void patternModelRandomizeUV(struct PatternModel *pattern);
 
-void patternModelRandomizeUV(struct PatternModel *pattern);
-void patternModelScaleUV(struct PatternModel *pattern, double scaleFactor);
+extern void patternModelScaleUV(struct PatternModel *pattern,
+                                double scaleFactor);
 
-void initPatternGLData(struct PatternModel *pattern);
+extern void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
+                                               GtkGLArea *glArea);
+extern void patternModelInitUnitsPosition(struct PatternModel *pattern);
 
-void patternModelFitColor(struct PatternModel *pattern, float min, float max);
-void patternModelRandomizeColor(struct PatternModel *pattern);
+extern void patternModelFitColor(struct PatternModel *pattern, float min,
+                                 float max);
+extern void patternModelRandomizeColor(struct PatternModel *pattern);
 
-struct PatternModel *patternModelNew(GtkGLArea *glArea,
-                                     const unsigned int sizeX,
-                                     const unsigned int sizeY,
-                                     const unsigned int cpy);
+extern void patternModelRandomizeUVRotate(struct PatternModel *pattern
+                                          );
 
-void patternModelFree(struct PatternModel *pattern);
+extern struct PatternModel *patternModelNew(GtkGLArea *glArea,
+                                            const unsigned int sizeX,
+                                            const unsigned int sizeY,
+                                            const unsigned int cpy);
+
+extern void patternModelFree(struct PatternModel *pattern);
 
 #endif

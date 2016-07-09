@@ -8,12 +8,13 @@
 #include <time.h>
 #include <string.h>
 
-#include "gl_helper.h"
+//#include "gl_helper.h"
 #include "constant.h"
 
 #include "pattern_alpha_model.h"
-#include "../../../general/header/general_helper.h"
+#include "../../../general/src/header/general_helper.h"
+#include "../../../general/src/header/gl_helper.h"
 
-void *patternAlphaNew();
+extern void *patternAlphaNew(const char *patternName);
 
 #endif

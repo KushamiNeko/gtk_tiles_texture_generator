@@ -1,37 +1,51 @@
 #include <gtk-3.0/gtk/gtk.h>
 
 #include <GL/glew.h>
+#include <stdarg.h>
 
 #include "header/gl_helper.h"
 #include "header/pattern_alpha.h"
 #include "header/constant.h"
 
+#include "../../general/src/header/general_helper.h"
+
 struct PatternControl {
-  void *(*initPattern)(GtkWindow *mainWindow, GtkContainer *container,
-                       GtkGLArea *glArea, GLuint shaderProgram);
-  void (*freePattern)(void *control);
+  void *(*initPatternControl)(GtkWindow *mainWindow, GtkContainer *container,
+                              GtkGLArea *glArea, GLuint shaderProgram);
+  // void (*freePattern)(void *control);
+
+  void (*constructPatternModel)(struct PatternControl *control);
+  void (*freePatternModel)(struct PatternControl *control);
 
   void *patternControl;
   gchar *patternName;
 };
 
-static void *initPattern(struct PatternControl *control, GtkWindow *mainWindow,
-                         GtkContainer *container, GtkGLArea *glArea,
-                         GLuint shaderProgram) {
+static void initPatternControl(struct PatternControl *control,
+                               GtkWindow *mainWindow, GtkContainer *container,
+                               GtkGLArea *glArea, GLuint shaderProgram) {
   control->patternControl =
-      control->initPattern(mainWindow, container, glArea, shaderProgram);
+      control->initPatternControl(mainWindow, container, glArea, shaderProgram);
 }
 
-static void freePattern(struct PatternControl *control) {
-  control->freePattern(control);
+static void constructPatternModel(struct PatternControl *control) {
+  control->constructPatternModel(control->patternControl);
 }
+
+static void freePatternModel(struct PatternControl *control) {
+  control->freePatternModel(control->patternControl);
+}
+
+// static void freePattern(struct PatternControl *control) {
+//  control->freePattern(control);
+//}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static GLuint constructShaderProgram(const char *vertFile,
                                      const char *fragFile) {
-  const char *vertexShader = readShader(vertFile);
-  const char *fragmentShader = readShader(fragFile);
+  const char *vertexShader = readFile(vertFile);
+  const char *fragmentShader = readFile(fragFile);
 
   GLuint shaderProgram = glCreateProgram();
   generateShader(&shaderProgram, vertexShader, GL_VERTEX_SHADER);
@@ -49,12 +63,15 @@ static void glRealize(GtkGLArea *area) {
   glewExperimental = GL_TRUE;
   glewInit();
 
+  glHint(GL_TEXTURE_COMPRESSION_HINT, GL_NICEST);
+  glHint(GL_FRAGMENT_SHADER_DERIVATIVE_HINT, GL_NICEST);
+  glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+  glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+
   const GLubyte *renderer = glGetString(GL_RENDERER);
   const GLubyte *version = glGetString(GL_VERSION);
   g_print("OpenGL Renderer: %s\n", renderer);
   g_print("OpenGL Version: %s\n", version);
-
-  glClearColor(0, 0, 0, 0);
 
   if (gtk_gl_area_get_error(area) != NULL) {
     g_print("GL Area initialization failed!\n");
@@ -67,15 +84,76 @@ static void glRealize(GtkGLArea *area) {
   glDepthFunc(GL_LESS);
 
   // enable back face culling
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
-  glFrontFace(GL_CCW);
+   glEnable(GL_CULL_FACE);
+   glCullFace(GL_BACK);
+   glFrontFace(GL_CCW);
+
+  glClearColor(0, 0, 0, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
+  glFlush();
 }
 
-static void activate() {
+struct PatternType {
+  struct PatternControl **patternCollection;
+  unsigned int currentID;
+
+  GtkWindow *window;
+  GtkContainer *mainBox;
+  GtkContainer *container;
+  GtkGLArea *glArea;
+  GLuint shaderProgram;
+};
+
+struct PatternType *patternTypeNew(struct PatternControl **pattern,
+                                   GtkWindow *window, GtkContainer *mainBox,
+                                   GtkContainer *container, GtkGLArea *glArea,
+                                   GLuint shaderProgram) {
+  struct PatternType *re = defenseCalloc(1, sizeof(struct PatternType));
+
+  re->patternCollection = pattern;
+  re->currentID = 0;
+
+  re->window = window;
+  re->mainBox = mainBox;
+  re->container = container;
+  re->glArea = glArea;
+  re->shaderProgram = shaderProgram;
+
+  return re;
+}
+
+static void comboBoxChanged(GtkComboBox *widget, void *userData) {
+  struct PatternType *user = (struct PatternType *)userData;
+  struct PatternControl **patternCollection =
+      (struct PatternControl **)user->patternCollection;
+
+  g_print("current: %d, %s\n", user->currentID,
+          patternCollection[user->currentID]->patternName);
+
+  // freePattern(pattern[user->currentID]);
+  int newPatternID = gtk_combo_box_get_active(widget);
+
+  // freePatternModel(*patternCollection);
+
+  ////_print("current: %d, %s\n", user->currentID,
+  ////       pattern[user->currentID]->patternName);
+  //// g_print("new: %d, %s\n", newPatternID,
+  //// pattern[newPatternID]->patternName);
+
+  //  gtk_widget_hide(GTK_WIDGET(user->mainBox));
+  //  freePattern(pattern[user->currentID]);
+  //   gtk_widget_show_all(GTK_WIDGET(user->mainBox));
+  //
+  //  initPattern(pattern[newPatternID], user->window, user->container,
+  //              user->glArea, user->shaderProgram);
+
+  user->currentID = newPatternID;
+}
+
+static void activate(struct PatternControl **patternCollection) {
   // building the general gtk components
   GtkWidget *mainWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title(GTK_WINDOW(mainWindow), "Pattern Generator");
+  gtk_window_set_title(GTK_WINDOW(mainWindow), "Tile Texture Generator");
   gtk_window_set_position(GTK_WINDOW(mainWindow), GTK_WIN_POS_CENTER);
   gtk_window_set_resizable(GTK_WINDOW(mainWindow), FALSE);
   g_signal_connect(GTK_WIDGET(mainWindow), "destroy", G_CALLBACK(gtk_main_quit),
@@ -119,28 +197,72 @@ static void activate() {
   // we need to fully initialize the gtk components before we perform further
   // construct
 
+  struct PatternControl **pattern = patternCollection;
+
+  while (*pattern != NULL) {
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(patternType),
+                                   (*pattern)->patternName);
+    pattern++;
+  }
+
+  gtk_combo_box_set_active(GTK_COMBO_BOX(patternType), 0);
+
   GLuint mainShaderProgram =
       constructShaderProgram(VERTEX_SHADER, FRAGMENT_SHADER);
 
-  void *patternAlpha = patternAlphaNew();
+  struct PatternType *user = patternTypeNew(
+      patternCollection, GTK_WINDOW(mainWindow), GTK_CONTAINER(mainBox),
+      GTK_CONTAINER(controlerBox), GTK_GL_AREA(mainGL), mainShaderProgram);
 
-  initPattern((struct PatternControl *)patternAlpha, GTK_WINDOW(mainWindow),
-              GTK_CONTAINER(controlerBox), GTK_GL_AREA(mainGL),
-              mainShaderProgram);
+  g_signal_connect(patternType, "changed", G_CALLBACK(comboBoxChanged),
+                   (void *)user);
+
+  //  initPattern(pattern, GTK_WINDOW(mainWindow), GTK_CONTAINER(controlerBox),
+  //              GTK_GL_AREA(mainGL), mainShaderProgram);
+
+  initPatternControl(*patternCollection, GTK_WINDOW(mainWindow),
+                     GTK_CONTAINER(controlerBox), GTK_GL_AREA(mainGL),
+                     mainShaderProgram);
+
+  constructPatternModel(*patternCollection);
 
   // freePattern((struct PatternControl *)patternAlpha);
+  // freePattern(*patternCollection);
+
+  // initPattern(patternCollection[1], GTK_WINDOW(mainWindow),
+  //            GTK_CONTAINER(controlerBox), GTK_GL_AREA(mainGL),
+  //            mainShaderProgram);
 
   // initialization of the pattern
   //  initPattern(GTK_WINDOW(mainWindow), GTK_CONTAINER(controlerBox),
   //              GTK_GL_AREA(mainGL), mainShaderProgram);
 }
 
+struct PatternControl **collectPattern(const unsigned int numArgs, ...) {
+  struct PatternControl **re = (struct PatternControl **)defenseCalloc(
+      1, sizeof(struct PatternControl *) * (numArgs + 1));
+
+  va_list list;
+
+  va_start(list, numArgs);
+
+  for (int i = 0; i < numArgs; i++) {
+    re[i] = va_arg(list, struct PatternControl *);
+  }
+
+  re[numArgs] = NULL;
+  return re;
+}
+
 int main(int argc, char **argv) {
   gtk_init(&argc, &argv);
 
-  // void *patternAlpha = patternAlphaNew();
+  void *patternAlpha = patternAlphaNew("Pattern 01");
+  // void *patternBeta = patternAlphaNew("Pattern 02");
 
-  activate();
+  struct PatternControl **patternCollection = collectPattern(1, patternAlpha);
+
+  activate(patternCollection);
   gtk_main();
 
   return 0;

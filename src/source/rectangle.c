@@ -50,48 +50,155 @@ static void constructRectangleVertexColor(struct Rectangle *rect) {
   }
 }
 
-// static float fit01(float src, double newMin, double newMax) {
-//  // if (src > 1.0f) {
-//  //  src = 1.0f;
-//  //} else if (src < 0.0f) {
-//  //  src = 0.0f;
-//  //}
+// struct Rectangle *rectangleClone(struct Rectangle *rect) {
+//   struct Rectangle *re = defenseMalloc(sizeof(struct Rectangle));
 //
-//  if (src > 1.0f) {
-//    src = newMax;
-//  } else if (src < 0.0f) {
-//    src = newMin;
-//  }
+//   re->position = (GLfloat **)defenseMalloc(4 * sizeof(GLfloat *));
+//   for (int i = 0; i < 4; i++) {
+//     re->position[i] = (GLfloat *)defenseMalloc(3 * sizeof(GLfloat));
+//   }
 //
-//  double newRange = newMax - newMin;
-//  float re = (src * newRange) + newMin;
+//   re->position[0][0] = rect->position[0][0];
+//   re->position[0][1] = rect->position[0][1];
+//   re->position[0][2] = rect->position[0][2];
 //
-//  return re;
-//}
+//   re->position[1][0] = rect->position[1][0];
+//   re->position[1][1] = rect->position[1][1];
+//   re->position[1][2] = rect->position[1][2];
 //
+//   re->position[2][0] = rect->position[2][0];
+//   re->position[2][1] = rect->position[2][1];
+//   re->position[2][2] = rect->position[2][2];
+//
+//   re->position[3][0] = rect->position[3][0];
+//   re->position[3][1] = rect->position[3][1];
+//   re->position[3][2] = rect->position[3][2];
+//
+//   re->uv = rect->uv;
+//
+//   re->width = rect->width;
+//   re->height = rect->height;
+//   re->color = rect->color;
+//
+//   re->pivot = rect->pivot;
+//
+//   re->xMax = rect->xMax;
+//   re->yMax = rect->yMax;
+//   re->xMin = rect->xMin;
+//   re->yMin = rect->yMin;
+//
+//   re->vertexOrder = rect->vertexOrder;
+//
+//   re->vertexPosition = rect->vertexPosition;
+//   re->vertexUV = rect->vertexUV;
+//   re->vertexColor = rect->vertexColor;
+//
+//   re->vertexCounts = rect->vertexCounts;
+//
+//   constructRectangleVertexPos(re);
+//
+//   return re;
+// }
+
+struct Rectangle *rectangleClone(struct Rectangle *rect) {
+  struct Rectangle *re = rectangleNew();
+
+  re->position[0][0] = rect->position[0][0];
+  re->position[0][1] = rect->position[0][1];
+  re->position[0][2] = rect->position[0][2];
+
+  re->position[1][0] = rect->position[1][0];
+  re->position[1][1] = rect->position[1][1];
+  re->position[1][2] = rect->position[1][2];
+
+  re->position[2][0] = rect->position[2][0];
+  re->position[2][1] = rect->position[2][1];
+  re->position[2][2] = rect->position[2][2];
+
+  re->position[3][0] = rect->position[3][0];
+  re->position[3][1] = rect->position[3][1];
+  re->position[3][2] = rect->position[3][2];
+
+  re->uv[0][0] = rect->uv[0][0];
+  re->uv[0][1] = rect->uv[0][1];
+
+  re->uv[1][0] = rect->uv[1][0];
+  re->uv[1][1] = rect->uv[1][1];
+
+  re->uv[2][0] = rect->uv[2][0];
+  re->uv[2][1] = rect->uv[2][1];
+
+  re->uv[3][0] = rect->uv[3][0];
+  re->uv[3][1] = rect->uv[3][1];
+
+  re->xMax[0] = rect->xMax[0];
+  re->xMax[1] = rect->xMax[1];
+
+  re->xMin[0] = rect->xMin[0];
+  re->xMin[1] = rect->xMin[1];
+
+  re->yMax[0] = rect->yMax[0];
+  re->yMax[1] = rect->xMax[1];
+
+  re->yMin[0] = rect->yMin[0];
+  re->yMin[1] = rect->yMin[1];
+
+  re->pivot = rect->pivot;
+  //  re->pivot = (GLfloat *)defenseMalloc(3 * sizeof(GLfloat));
+  //  re->pivot[0] = 0;
+  //  re->pivot[1] = 0;
+  //  re->pivot[2] = 0;
+
+  re->vertexOrder[0] = rect->vertexOrder[0];
+  re->vertexOrder[1] = rect->vertexOrder[1];
+  re->vertexOrder[2] = rect->vertexOrder[2];
+
+  re->vertexOrder[3] = rect->vertexOrder[3];
+  re->vertexOrder[4] = rect->vertexOrder[4];
+  re->vertexOrder[5] = rect->vertexOrder[5];
+
+  re->color = rect->color;
+
+  for (int i = 0; i < re->vertexCounts * 3; i++) {
+    re->vertexPosition[i] = rect->vertexPosition[i];
+    re->vertexColor[i] = rect->vertexColor[i];
+  }
+
+  for (int i = 0; i < re->vertexCounts * 2; i++) {
+    re->vertexUV[i] = rect->vertexUV[i];
+  }
+
+  // constructRectangleVertexPos(re);
+  // constructRectangleVertexUV(re);
+  // constructRectangleVertexColor(re);
+
+  return re;
+}
 
 struct Rectangle *rectangleNew() {
-  struct Rectangle *re = defenseCalloc(1, sizeof(struct Rectangle));
+  struct Rectangle *re = defenseMalloc(sizeof(struct Rectangle));
   re->vertexCounts = 6;
 
-  re->position = (GLfloat **)defenseCalloc(4, sizeof(GLfloat *));
-  re->uv = (GLfloat **)defenseCalloc(4, sizeof(GLfloat *));
+  re->position = (GLfloat **)defenseMalloc(4 * sizeof(GLfloat *));
+  re->uv = (GLfloat **)defenseMalloc(4 * sizeof(GLfloat *));
 
   re->width = 1.0f;
   re->height = 1.0f;
 
+  re->rotateDegree = 0.0f;
+
   // we want to modified the existing position data instead of allocating new
   // memory space
-  // re->pivot = (GLfloat **)defenseCalloc(1, sizeof(GLfloat *));
+  // re->pivot = (GLfloat **)defenseMalloc(sizeof(GLfloat *));
 
-  re->xMax = (unsigned int *)defenseCalloc(2, sizeof(unsigned int));
-  re->xMin = (unsigned int *)defenseCalloc(2, sizeof(unsigned int));
-  re->yMax = (unsigned int *)defenseCalloc(2, sizeof(unsigned int));
-  re->yMin = (unsigned int *)defenseCalloc(2, sizeof(unsigned int));
+  re->xMax = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
+  re->xMin = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
+  re->yMax = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
+  re->yMin = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
 
   for (int i = 0; i < 4; i++) {
-    re->position[i] = (GLfloat *)defenseCalloc(3, sizeof(GLfloat));
-    re->uv[i] = (GLfloat *)defenseCalloc(2, sizeof(GLfloat));
+    re->position[i] = (GLfloat *)defenseMalloc(3 * sizeof(GLfloat));
+    re->uv[i] = (GLfloat *)defenseMalloc(2 * sizeof(GLfloat));
   }
 
   re->position[0][0] = 1.0f;
@@ -135,9 +242,13 @@ struct Rectangle *rectangleNew() {
   re->yMin[1] = 3;
 
   re->pivot = 0;
+  //  re->pivot = (GLfloat *)defenseMalloc(3 * sizeof(GLfloat));
+  //  re->pivot[0] = 0;
+  //  re->pivot[1] = 0;
+  //  re->pivot[2] = 0;
 
   re->vertexOrder =
-      (unsigned int *)defenseCalloc(re->vertexCounts, sizeof(unsigned int));
+      (unsigned int *)defenseMalloc(re->vertexCounts * sizeof(unsigned int));
 
   re->vertexOrder[0] = 0;
   re->vertexOrder[1] = 1;
@@ -147,9 +258,9 @@ struct Rectangle *rectangleNew() {
   re->vertexOrder[4] = 3;
   re->vertexOrder[5] = 0;
 
-  re->vertexPosition = (GLfloat *)defenseCalloc(18, sizeof(GLfloat));
-  re->vertexUV = (GLfloat *)defenseCalloc(12, sizeof(GLfloat));
-  re->vertexColor = (GLfloat *)defenseCalloc(18, sizeof(GLfloat));
+  re->vertexPosition = (GLfloat *)defenseMalloc(18 * sizeof(GLfloat));
+  re->vertexUV = (GLfloat *)defenseMalloc(12 * sizeof(GLfloat));
+  re->vertexColor = (GLfloat *)defenseMalloc(18 * sizeof(GLfloat));
 
   constructRectangleVertexPos(re);
   constructRectangleVertexUV(re);
@@ -175,13 +286,28 @@ void rectangleMoveTo(struct Rectangle *rect, GLfloat x, GLfloat y) {
   rectangleMove(rect, mX, mY);
 }
 
-static void initRectUVScale(struct Rectangle *rect) {
-  GLfloat xMax = rect->uv[rect->xMin[0]][0] + 1.0f;
-  GLfloat yMax = rect->uv[rect->yMin[0]][1] + 1.0f;
-  rect->uv[rect->yMax[0]][1] = yMax;
-  rect->uv[rect->yMax[1]][1] = yMax;
-  rect->uv[rect->xMax[0]][0] = xMax;
-  rect->uv[rect->xMax[1]][0] = xMax;
+void rectangleInitUVScale(struct Rectangle *rect) {
+  //  GLfloat xMax = rect->uv[rect->xMin[0]][0] + 1.0f;
+  //  GLfloat yMax = rect->uv[rect->yMin[0]][1] + 1.0f;
+  //  rect->uv[rect->yMax[0]][1] = yMax;
+  //  rect->uv[rect->yMax[1]][1] = yMax;
+  //  rect->uv[rect->xMax[0]][0] = xMax;
+  //  rect->uv[rect->xMax[1]][0] = xMax;
+
+  //  GLfloat xPos = rect->uv[rect->pivot][0];
+  //  GLfloat yPos = rect->uv[rect->pivot][1];
+
+  rect->uv[0][0] = 1.0f;
+  rect->uv[0][1] = 1.0f;
+
+  rect->uv[1][0] = 0.0f;
+  rect->uv[1][1] = 1.0f;
+
+  rect->uv[2][0] = 0.0f;
+  rect->uv[2][1] = 0.0f;
+
+  rect->uv[3][0] = 1.0f;
+  rect->uv[3][1] = 0.0f;
 
   if (rect->width > rect->height) {
     GLfloat scaleFactor = rect->height / rect->width;
@@ -200,7 +326,44 @@ static void initRectUVScale(struct Rectangle *rect) {
     rect->uv[rect->xMax[0]][0] = scaleFactor;
     rect->uv[rect->xMax[1]][0] = scaleFactor;
   }
+
+  //  rect->uv[1][0] += xPos - rect->uv[0][0];
+  //  rect->uv[1][1] += yPos - rect->uv[0][1];
+  //  rect->uv[2][0] += xPos - rect->uv[0][0];
+  //  rect->uv[2][1] += yPos - rect->uv[0][1];
+  //  rect->uv[3][0] += xPos - rect->uv[0][0];
+  //  rect->uv[3][1] += yPos - rect->uv[0][1];
+  //
+  //  rect->uv[0][0] = xPos;
+  //  rect->uv[0][1] = yPos;
 }
+
+// static void initRectUVRotate(struct Rectangle *rect) {
+// GLfloat xMax = rect->uv[rect->xMin[0]][0] + 1.0f;
+// GLfloat yMax = rect->uv[rect->yMin[0]][1] + 1.0f;
+// rect->uv[rect->yMax[0]][1] = yMax;
+// rect->uv[rect->yMax[1]][1] = yMax;
+// rect->uv[rect->xMax[0]][0] = xMax;
+// rect->uv[rect->xMax[1]][0] = xMax;
+
+// if (rect->width > rect->height) {
+//  GLfloat scaleFactor = rect->height / rect->width;
+
+//  GLfloat width = rect->uv[rect->xMax[0]][0] - rect->uv[rect->xMin[0]][0];
+//  scaleFactor = rect->uv[rect->yMin[0]][1] + (width * scaleFactor);
+
+//  rect->uv[rect->yMax[0]][1] = scaleFactor;
+//  rect->uv[rect->yMax[1]][1] = scaleFactor;
+//} else if (rect->width < rect->height) {
+//  GLfloat scaleFactor = rect->width / rect->height;
+
+//  GLfloat height = rect->uv[rect->yMax[0]][1] - rect->uv[rect->yMin[0]][1];
+//  scaleFactor = rect->uv[rect->xMin[0]][0] + (height * scaleFactor);
+
+//  rect->uv[rect->xMax[0]][0] = scaleFactor;
+//  rect->uv[rect->xMax[1]][0] = scaleFactor;
+//}
+//}
 
 void rectangleSetWidth(struct Rectangle *rect, GLfloat width) {
   // explicitily performing the sequential operation rather than construct a
@@ -210,7 +373,7 @@ void rectangleSetWidth(struct Rectangle *rect, GLfloat width) {
 
   rect->width = width;
 
-  initRectUVScale(rect);
+  rectangleInitUVScale(rect);
 
   constructRectangleVertexPos(rect);
   constructRectangleVertexUV(rect);
@@ -225,7 +388,7 @@ void rectangleSetHeight(struct Rectangle *rect, GLfloat height) {
 
   rect->height = height;
 
-  initRectUVScale(rect);
+  rectangleInitUVScale(rect);
 
   constructRectangleVertexPos(rect);
   constructRectangleVertexUV(rect);
@@ -251,22 +414,42 @@ void rectangleMoveUV(struct Rectangle *rect, GLfloat x, GLfloat y) {
 }
 
 void rectangleScaleUV(struct Rectangle *rect, double scaleFactor) {
-  initRectUVScale(rect);
+  constructRectangleVertexUV(rect);
 
-  GLfloat width = rect->uv[rect->xMax[0]][0] - rect->uv[rect->xMin[0]][0];
-  GLfloat height = rect->uv[rect->yMax[0]][1] - rect->uv[rect->yMin[0]][1];
+  for (int i = 0; i < rect->vertexCounts * 2; i++) {
+    rect->vertexUV[i] *= scaleFactor;
+  }
 
-  GLfloat widthScale = width * scaleFactor;
-  GLfloat heightScale = height * scaleFactor;
+  // rect->uv[rect->xMax[0]][0] *= scaleFactor;
+  // rect->uv[rect->xMax[1]][0] *= scaleFactor;
 
-  GLfloat xMax = rect->uv[rect->xMin[0]][0] + widthScale;
-  GLfloat yMax = rect->uv[rect->yMin[0]][1] + heightScale;
+  // rect->uv[rect->yMax[0]][1] *= scaleFactor;
+  // rect->uv[rect->yMax[1]][1] *= scaleFactor;
 
-  rect->uv[rect->xMax[0]][0] = xMax;
-  rect->uv[rect->xMax[1]][0] = xMax;
+  // rect->uv[rect->xMin[0]][0] *= scaleFactor;
+  // rect->uv[rect->xMin[1]][0] *= scaleFactor;
 
-  rect->uv[rect->yMax[0]][1] = yMax;
-  rect->uv[rect->yMax[1]][1] = yMax;
+  // rect->uv[rect->yMin[0]][1] *= scaleFactor;
+  // rect->uv[rect->yMin[1]][1] *= scaleFactor;
+
+  //   initRectUVScale(rect);
+  //
+  //  GLfloat width = rect->uv[rect->xMax[0]][0] - rect->uv[rect->xMin[0]][0];
+  //  GLfloat height = rect->uv[rect->yMax[0]][1] - rect->uv[rect->yMin[0]][1];
+  //
+  //  GLfloat widthScale = width * scaleFactor;
+  //  GLfloat heightScale = height * scaleFactor;
+  //
+  //  GLfloat xMax = rect->uv[rect->xMin[0]][0] + widthScale;
+  //  GLfloat yMax = rect->uv[rect->yMin[0]][1] + heightScale;
+  //
+  //  rect->uv[rect->xMax[0]][0] = xMax;
+  //  rect->uv[rect->xMax[1]][0] = xMax;
+  //
+  //  rect->uv[rect->yMax[0]][1] = yMax;
+  //  rect->uv[rect->yMax[1]][1] = yMax;
+
+  ////////////////////////////////////////////////////////////
 
   // OpenGL does not work in the way of explicitily wrap the uv position
   // set the third argument of glTexParameteriv function to GL_REPEAT instead
@@ -295,10 +478,11 @@ void rectangleScaleUV(struct Rectangle *rect, double scaleFactor) {
   // rect->uv[rect->yMax[0]][1] = yMax;
   // rect->uv[rect->yMax[1]][1] = yMax;
 
-  constructRectangleVertexUV(rect);
+  // constructRectangleVertexUV(rect);
 }
 
 void rectangleRotateUV(struct Rectangle *rect, float degree) {
+  rect->rotateDegree = degree;
   float rotateRad = degree * ONE_DEG_IN_RAD;
 
   for (int i = 0; i < 4; i++) {
