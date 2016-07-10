@@ -3,3 +3,6 @@ reference
 pkg
 *.png
 *.jpg
+src/third_party
+tag
+

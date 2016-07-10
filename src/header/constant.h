@@ -19,7 +19,7 @@
 
 #define FRAGMENT_SHADER_WIREFRAME "src/shader/fragment_shader_wireframe.frag"
 
-#define DEFAULT_TEXTURE "uv_checker.png"
+#define DEFAULT_TEXTURE "resource/uv_checker.png"
 //#define DEFAULT_TEXTURE "small.png"
 
 #endif

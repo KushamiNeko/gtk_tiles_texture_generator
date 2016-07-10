@@ -84,9 +84,9 @@ static void glRealize(GtkGLArea *area) {
   glDepthFunc(GL_LESS);
 
   // enable back face culling
-   glEnable(GL_CULL_FACE);
-   glCullFace(GL_BACK);
-   glFrontFace(GL_CCW);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+  glFrontFace(GL_CCW);
 
   glClearColor(0, 0, 0, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
@@ -168,8 +168,14 @@ static void activate(struct PatternControl **patternCollection) {
 
   GtkWidget *mainGL = gtk_gl_area_new();
   gtk_container_add(GTK_CONTAINER(mainBox), mainGL);
+
   gtk_gl_area_set_required_version(GTK_GL_AREA(mainGL), GL_VERSION_MAJOR,
                                    GL_VERSION_MINOR);
+
+  gtk_widget_set_hexpand(mainGL, FALSE);
+  gtk_widget_set_vexpand(mainGL, FALSE);
+  gtk_widget_set_halign(mainGL, GTK_ALIGN_CENTER);
+  gtk_widget_set_valign(mainGL, GTK_ALIGN_CENTER);
   gtk_widget_set_size_request(mainGL, WINDOW_HEIGHT, WINDOW_HEIGHT);
 
   // instead of entering GL render loop, we queue the render command when we

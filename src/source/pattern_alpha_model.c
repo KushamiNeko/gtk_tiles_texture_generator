@@ -61,6 +61,10 @@ static void patternModelInitPos(struct PatternModel *pattern) {
       pattern->vertexPosition[(i * vertexVectorDataCounts) + j] =
           rect->vertexPosition[j];
     }
+
+    for (int j = 0; j < 24; j++) {
+      pattern->vertexWireframe[(i * 24) + j] = rect->vertexWireframe[j];
+    }
   }
 }
 
@@ -113,14 +117,16 @@ void patternModelRandomizeUVRotate(struct PatternModel *pattern) {
   //      float oldX = pattern->vertexUV[i];
   //      float oldY = pattern->vertexUV[i + 1];
   //
-  //      // rect->uv[i][0] = (oldX * cos(rotateRad)) - (oldY * sin(rotateRad));
+  //      // rect->uv[i][0] = (oldX * cos(rotateRad)) - (oldY *
+  // sin(rotateRad));
   //      pattern->vertexUV[i] = (oldX * cos(rotateRad)) - (oldY *
   //      sin(rotateRad));
   //
   //      pattern->vertexUV[i + 1] =
   //          (oldX * cos(rotateRad)) - (oldY * sin(rotateRad));
   //    }
-  //    // rect->uv[i][1] = (oldY * cos(rotateRad)) + (oldX * sin(rotateRad));
+  //    // rect->uv[i][1] = (oldY * cos(rotateRad)) + (oldX *
+  // sin(rotateRad));
   //  }
 
   patternModelInitUV(pattern);
@@ -219,10 +225,15 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
     }
 
     re->vertexCounts = re->numUnits * (*re->units)->vertexCounts;
+    re->wireframeVertexCounts =
+        re->numUnits * (*re->units)->wireframeVertexCounts;
 
     re->vertexPosition = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat));
     re->vertexUV = defenseMalloc(re->vertexCounts * 2 * sizeof(GLfloat));
     re->vertexColor = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat));
+
+    re->vertexWireframe =
+        defenseMalloc(re->wireframeVertexCounts * 3 * sizeof(GLfloat));
 
     patternModelInitPos(re);
     patternModelInitColor(re);
@@ -240,6 +251,9 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
     re->colorVBO = generateVBO(&vao, re->vertexCounts, 3, re->vertexColor, 1);
 
     re->uvVBO = generateVBO(&vao, re->vertexCounts, 2, re->vertexUV, 2);
+
+    re->wireframeVBO =
+        generateVBO(&vao, re->wireframeVertexCounts, 3, re->vertexWireframe, 3);
 
     re->vao = vao;
 
@@ -326,6 +340,8 @@ static void modelGenerate(struct PatternModel *pattern,
   }
 
   pattern->vertexCounts = pattern->numUnits * (*pattern->units)->vertexCounts;
+  pattern->wireframeVertexCounts =
+      pattern->numUnits * (*pattern->units)->wireframeVertexCounts;
 
   pattern->vertexPosition =
       defenseMalloc(pattern->vertexCounts * 3 * sizeof(GLfloat));
@@ -333,6 +349,9 @@ static void modelGenerate(struct PatternModel *pattern,
       defenseMalloc(pattern->vertexCounts * 2 * sizeof(GLfloat));
   pattern->vertexColor =
       defenseMalloc(pattern->vertexCounts * 3 * sizeof(GLfloat));
+
+  pattern->vertexWireframe =
+      defenseMalloc(pattern->wireframeVertexCounts * 3 * sizeof(GLfloat));
 
   patternModelInitPos(pattern);
   patternModelInitColor(pattern);
@@ -375,6 +394,9 @@ struct PatternModel *patternModelNew(GtkGLArea *glArea,
   pattern->uvVBO =
       generateVBO(&vao, pattern->vertexCounts, 2, pattern->vertexUV, 2);
 
+  pattern->wireframeVBO = generateVBO(&vao, pattern->wireframeVertexCounts, 3,
+                                      pattern->vertexWireframe, 3);
+
   pattern->vao = vao;
 
   pattern->seamlessModel = NULL;
@@ -392,12 +414,15 @@ void patternModelFree(struct PatternModel *pattern) {
   glDeleteBuffers(1, &pattern->positionVBO);
   glDeleteBuffers(1, &pattern->uvVBO);
   glDeleteBuffers(1, &pattern->colorVBO);
+  glDeleteBuffers(1, &pattern->wireframeVBO);
 
   glDeleteVertexArrays(1, &pattern->vao);
 
   free(pattern->vertexPosition);
   free(pattern->vertexColor);
   free(pattern->vertexUV);
+
+  free(pattern->vertexWireframe);
 
   if (pattern->seamlessModel) {
     patternModelFree(pattern->seamlessModel);

@@ -3,35 +3,21 @@
 
 #define ONE_DEG_IN_RAD (2.0f * M_PI) / 360.0f
 
-// struct rectangle {
-//  GLfloat **position;
-//  GLfloat **uv;
-//
-//  GLfloat width;
-//  GLfloat height;
-//
-//  unsigned int pivot;
-//  unsigned int *xMax;
-//  unsigned int *xMin;
-//  unsigned int *yMax;
-//  unsigned int *yMin;
-//
-//  unsigned int *vertexOrder;
-//
-//  GLfloat *vertexPosition;
-//  GLfloat *vertexUV;
-//  GLfloat *vertexColor;
-//
-//  int vertexCounts;
-//
-//  GLfloat randColor;
-//};
-
 static void constructRectangleVertexPos(struct Rectangle *rect) {
   for (int i = 0; i < rect->vertexCounts; i++) {
     for (int j = 0; j < 3; j++) {
       rect->vertexPosition[(i * 3) + j] =
           rect->position[rect->vertexOrder[i]][j];
+    }
+  }
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 2; j++) {
+      for (int k = 0; k < 3; k++) {
+        int positionIndex = (j + i) % 4;
+        rect->vertexWireframe[(i * 2 * 3) + (j * 3) + k] =
+            rect->position[positionIndex][k];
+      }
     }
   }
 }
@@ -168,6 +154,10 @@ struct Rectangle *rectangleClone(struct Rectangle *rect) {
     re->vertexUV[i] = rect->vertexUV[i];
   }
 
+  for (int i = 0; i < re->wireframeVertexCounts * 3; i++) {
+    re->vertexWireframe[i] = rect->vertexWireframe[i];
+  }
+
   // constructRectangleVertexPos(re);
   // constructRectangleVertexUV(re);
   // constructRectangleVertexColor(re);
@@ -178,6 +168,7 @@ struct Rectangle *rectangleClone(struct Rectangle *rect) {
 struct Rectangle *rectangleNew() {
   struct Rectangle *re = defenseMalloc(sizeof(struct Rectangle));
   re->vertexCounts = 6;
+  re->wireframeVertexCounts = 8;
 
   re->position = (GLfloat **)defenseMalloc(4 * sizeof(GLfloat *));
   re->uv = (GLfloat **)defenseMalloc(4 * sizeof(GLfloat *));
@@ -261,6 +252,8 @@ struct Rectangle *rectangleNew() {
   re->vertexPosition = (GLfloat *)defenseMalloc(18 * sizeof(GLfloat));
   re->vertexUV = (GLfloat *)defenseMalloc(12 * sizeof(GLfloat));
   re->vertexColor = (GLfloat *)defenseMalloc(18 * sizeof(GLfloat));
+
+  re->vertexWireframe = (GLfloat *)defenseMalloc(24 * sizeof(GLfloat));
 
   constructRectangleVertexPos(re);
   constructRectangleVertexUV(re);
@@ -523,6 +516,8 @@ void rectangleFree(struct Rectangle *re) {
   free(re->vertexPosition);
   free(re->vertexUV);
   free(re->vertexColor);
+
+  free(re->vertexWireframe);
 
   free(re);
 }

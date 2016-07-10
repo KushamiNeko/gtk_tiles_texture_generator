@@ -31,7 +31,10 @@ struct Rectangle {
   GLfloat *vertexUV;
   GLfloat *vertexColor;
 
+  GLfloat *vertexWireframe;
+
   unsigned int vertexCounts;
+  unsigned int wireframeVertexCounts;
 };
 
 struct Rectangle *rectangleNew();

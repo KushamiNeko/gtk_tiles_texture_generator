@@ -19,17 +19,23 @@ struct PatternModel {
   unsigned int numHeight;
 
   struct Rectangle **units;
+
   unsigned int numUnits;
   unsigned int vertexCounts;
+  unsigned int wireframeVertexCounts;
 
   GLfloat *vertexPosition;
   GLfloat *vertexUV;
   GLfloat *vertexColor;
 
+  GLfloat *vertexWireframe;
+
   GLuint vao;
   GLuint positionVBO;
   GLuint uvVBO;
   GLuint colorVBO;
+
+  GLuint wireframeVBO;
 
   struct PatternModel *seamlessModel;
 };
@@ -47,8 +53,7 @@ extern void patternModelFitColor(struct PatternModel *pattern, float min,
                                  float max);
 extern void patternModelRandomizeColor(struct PatternModel *pattern);
 
-extern void patternModelRandomizeUVRotate(struct PatternModel *pattern
-                                          );
+extern void patternModelRandomizeUVRotate(struct PatternModel *pattern);
 
 extern struct PatternModel *patternModelNew(GtkGLArea *glArea,
                                             const unsigned int sizeX,
