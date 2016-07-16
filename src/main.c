@@ -3,8 +3,7 @@
 #include <GL/glew.h>
 #include <stdarg.h>
 
-#include "header/gl_helper.h"
-#include "header/pattern_alpha.h"
+#include "header/control.h"
 #include "header/constant.h"
 
 #include "../../general/src/header/general_helper.h"

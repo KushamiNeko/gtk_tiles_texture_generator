@@ -1,6 +1,11 @@
-#include "../header/pattern_alpha_model.h"
+#include "../header/model_base.h"
 
-#define ONE_DEG_IN_RAD (2.0f * M_PI) / 360.0f
+#ifdef UNIT_TESTING
+#define __malloc malloc
+#include <cmockery/cmockery_override.h>
+#else
+#define __malloc defenseMalloc
+#endif
 
 static inline void genRectRandUV(struct Rectangle *rect) {
   double amountX = (GLfloat)rand() / (GLfloat)RAND_MAX;
@@ -110,25 +115,6 @@ void patternModelRandomizeUVRotate(struct PatternModel *pattern) {
     genRectRandRotateUV(pattern->units[i]);
   }
 
-  //  float rotateRad = rotateAmount * ONE_DEG_IN_RAD;
-  //
-  //  for (int i = 0; i < pattern->vertexCounts * 2; i++) {
-  //    if (i % 2 == 0) {
-  //      float oldX = pattern->vertexUV[i];
-  //      float oldY = pattern->vertexUV[i + 1];
-  //
-  //      // rect->uv[i][0] = (oldX * cos(rotateRad)) - (oldY *
-  // sin(rotateRad));
-  //      pattern->vertexUV[i] = (oldX * cos(rotateRad)) - (oldY *
-  //      sin(rotateRad));
-  //
-  //      pattern->vertexUV[i + 1] =
-  //          (oldX * cos(rotateRad)) - (oldY * sin(rotateRad));
-  //    }
-  //    // rect->uv[i][1] = (oldY * cos(rotateRad)) + (oldX *
-  // sin(rotateRad));
-  //  }
-
   patternModelInitUV(pattern);
 }
 
@@ -162,7 +148,6 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
       reuse++;
     }
 
-    // g_print("re use : %d\n", reuse);
     if (reuse == 0) {
       break;
     }
@@ -184,7 +169,6 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
   }
 
   if (numNew != 0) {
-    // g_print("num new: %d\n", numNew);
     struct PatternModel *re = defenseMalloc(sizeof(struct PatternModel));
 
     re->sizeX = pattern->sizeX;
@@ -262,36 +246,6 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
     pattern->seamlessModel = re;
   }
 }
-
-// void patternModelSeamlessConstruct(struct PatternModel *pattern,
-//                                   GtkGLArea *glArea) {
-//  // pattern->numUnits = pattern->numWidth * pattern->numHeight;
-//
-//  //  for (int i = 0; i < pattern->numUnits; i++) {
-//  //    struct Rectangle *rect = pattern->units[i];
-//  //
-//  //    // reuse original unit
-//  //
-//  //    if (rect->position[rect->xMin[0]][0] >= 1.0f) {
-//  //      rectangleMove(rect, -__GL_VIEWPORT, 0);
-//  //    }
-//  //
-//  //    if (rect->position[rect->xMax[0]][0] <= -1.0f) {
-//  //      rectangleMove(rect, __GL_VIEWPORT, 0);
-//  //    }
-//  //
-//  //    if (rect->position[rect->yMin[0]][1] >= 1.0f) {
-//  //      rectangleMove(rect, 0, -__GL_VIEWPORT);
-//  //    }
-//  //
-//  //    if (rect->position[rect->yMax[0]][1] <= -1.0f) {
-//  //      rectangleMove(rect, 0, __GL_VIEWPORT);
-//  //    }
-//  //  }
-//
-//  // patternModelInitPos(pattern);
-//  seamlessModelConstruct(pattern, glArea);
-//}
 
 void patternModelInitUnitsPosition(struct PatternModel *pattern) {
   double width = (GLfloat)__GL_VIEWPORT / pattern->numWidth;
