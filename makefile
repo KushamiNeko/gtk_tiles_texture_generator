@@ -1,29 +1,30 @@
-bin/main : bin/pattern_alpha # bin/gl_helper
+bin/main : bin/control 
 	gcc `pkg-config --cflags gtk+-3.0 glew` \
--o bin/main bin/pattern_alpha bin/pattern_alpha_model bin/rectangle \
+-o bin/main bin/control bin/model_base bin/rectangle \
 ~/programming_projects/c/general/bin/general_helper \
 ~/programming_projects/c/general/bin/gl_helper \
--lstbi -lm src/main.c `pkg-config --libs gtk+-3.0 glew`
+src/main.c -lstbi -lm `pkg-config --libs gtk+-3.0 glew`
 
 
-bin/pattern_alpha: bin/pattern_alpha_model  #bin/gl_helper
-	gcc `pkg-config --cflags gtk+-3.0 glew` -c src/source/pattern_alpha.c \
-`pkg-config --libs gtk+-3.0 glew` -o bin/pattern_alpha 
+bin/control: bin/model_base 
+	gcc `pkg-config --cflags gtk+-3.0 glew` -c src/source/control.c \
+`pkg-config --libs gtk+-3.0 glew` -o bin/control 
 
 
-bin/pattern_alpha_model: bin/rectangle  #bin/gl_helper
-	gcc `pkg-config --cflags gtk+-3.0 glew` -c src/source/pattern_alpha_model.c -o bin/pattern_alpha_model \
+bin/model_base: bin/rectangle 
+	gcc `pkg-config --cflags gtk+-3.0 glew` -c src/source/model_base.c -o bin/model_base \
 		`pkg-config --libs gtk+-3.0 glew`
-
-#bin/gl_helper : 
-#	gcc `pkg-config --cflags glew` -c src/source/gl_helper.c \
-#`pkg-config --libs glew` -o bin/gl_helper
 
 bin/rectangle:
 	gcc -c src/source/rectangle.c -o bin/rectangle
 
 clean:
-	rm -r bin/*
+	@if [ $(shell find 'bin' -type d -empty)  ]; then\
+		echo 'bin is already clean';\
+	else\
+		echo 'cleaning bin ...';\
+		rm -r bin/*;\
+	fi
 
 all:
 	make clean

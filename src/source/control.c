@@ -1,4 +1,4 @@
-#include "../header/pattern_alpha.h"
+#include "../header/control.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../third_party/stb/stb_image_write.h"

@@ -11,7 +11,7 @@
 //#include "gl_helper.h"
 #include "constant.h"
 
-#include "pattern_alpha_model.h"
+#include "model_base.h"
 #include "../../../general/src/header/general_helper.h"
 #include "../../../general/src/header/gl_helper.h"
 

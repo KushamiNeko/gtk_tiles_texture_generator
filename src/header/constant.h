@@ -22,4 +22,6 @@
 #define DEFAULT_TEXTURE "resource/uv_checker.png"
 //#define DEFAULT_TEXTURE "small.png"
 
+#define ONE_DEG_IN_RAD (2.0f * M_PI) / 360.0f
+
 #endif

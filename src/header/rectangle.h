@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <GL/gl.h>
 
+#include "constant.h"
 #include "../../../general/src/header/general_helper.h"
 
 struct Rectangle {
