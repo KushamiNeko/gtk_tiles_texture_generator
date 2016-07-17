@@ -1,4 +1,4 @@
-#include "../header/model_base.h"
+#include "../header/pattern_model.h"
 
 #ifdef UNIT_TESTING
 #define __malloc malloc
@@ -133,13 +133,13 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
       struct Rectangle *rect = pattern->units[i];
 
       // reuse original unit
-      if (rect->position[rect->xMin[0]][0] >= 1.0f) {
+      if (rect->position[rect->xMin][0] >= 1.0f) {
         rectangleMove(rect, -__GL_VIEWPORT, 0);
-      } else if (rect->position[rect->xMax[0]][0] <= -1.0f) {
+      } else if (rect->position[rect->xMax][0] <= -1.0f) {
         rectangleMove(rect, __GL_VIEWPORT, 0);
-      } else if (rect->position[rect->yMin[0]][1] >= 1.0f) {
+      } else if (rect->position[rect->yMin][1] >= 1.0f) {
         rectangleMove(rect, 0, -__GL_VIEWPORT);
-      } else if (rect->position[rect->yMax[0]][1] <= -1.0f) {
+      } else if (rect->position[rect->yMax][1] <= -1.0f) {
         rectangleMove(rect, 0, __GL_VIEWPORT);
       } else {
         continue;
@@ -160,13 +160,15 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
   for (int i = 0; i < pattern->numUnits; i++) {
     struct Rectangle *rect = pattern->units[i];
 
-    if (rect->position[rect->xMax[0]][0] > 1.0f ||
-        rect->position[rect->xMin[0]][0] < -1.0f ||
-        rect->position[rect->yMax[0]][1] > 1.0f ||
-        rect->position[rect->yMin[0]][1] < -1.0f) {
+    if (rect->position[rect->xMax][0] > 1.0f ||
+        rect->position[rect->xMin][0] < -1.0f ||
+        rect->position[rect->yMax][1] > 1.0f ||
+        rect->position[rect->yMin][1] < -1.0f) {
       numNew++;
     }
   }
+
+  g_print("num new: %d\n", numNew);
 
   if (numNew != 0) {
     struct PatternModel *re = defenseMalloc(sizeof(struct PatternModel));
@@ -188,16 +190,16 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
       struct Rectangle *rect = pattern->units[i];
       struct Rectangle *newRect = NULL;
 
-      if (rect->position[rect->xMax[0]][0] > 1.0f) {
+      if (rect->position[rect->xMax][0] > 1.0f) {
         newRect = rectangleClone(rect);
         rectangleMove(newRect, -__GL_VIEWPORT, 0);
-      } else if (rect->position[rect->xMin[0]][0] < -1.0f) {
+      } else if (rect->position[rect->xMin][0] < -1.0f) {
         newRect = rectangleClone(rect);
         rectangleMove(newRect, __GL_VIEWPORT, 0);
-      } else if (rect->position[rect->yMax[0]][1] > 1.0f) {
+      } else if (rect->position[rect->yMax][1] > 1.0f) {
         newRect = rectangleClone(rect);
         rectangleMove(newRect, 0, -__GL_VIEWPORT);
-      } else if (rect->position[rect->yMin[0]][1] < -1.0f) {
+      } else if (rect->position[rect->yMin][1] < -1.0f) {
         newRect = rectangleClone(rect);
         rectangleMove(newRect, 0, __GL_VIEWPORT);
       }
@@ -266,18 +268,18 @@ void patternModelInitUnitsPosition(struct PatternModel *pattern) {
   patternModelInitPos(pattern);
 }
 
-static void modelGenerate(struct PatternModel *pattern,
-                          const unsigned int numWidth,
-                          const unsigned int numHeight) {
-  pattern->numUnits = numWidth * numHeight;
+/////////////////////////////////////////////////////////
+
+static void modelGenerate01(struct PatternModel *pattern) {
+  pattern->numUnits = pattern->numWidth * pattern->numHeight;
   pattern->units =
       defenseMalloc(pattern->numUnits * sizeof(struct Rectangle *));
 
-  double width = (GLfloat)__GL_VIEWPORT / (GLfloat)numWidth;
-  double height = (GLfloat)__GL_VIEWPORT / (GLfloat)numHeight;
+  double width = (GLfloat)__GL_VIEWPORT / (GLfloat)pattern->numWidth;
+  double height = (GLfloat)__GL_VIEWPORT / (GLfloat)pattern->numHeight;
 
-  for (int h = 0; h < numHeight; h++) {
-    for (int w = 0; w < numWidth; w++) {
+  for (int h = 0; h < pattern->numHeight; h++) {
+    for (int w = 0; w < pattern->numWidth; w++) {
       struct Rectangle *rect = rectangleNew();
       // we already randomize the color within the Rectangle construction
       // no need to do it again here
@@ -289,7 +291,7 @@ static void modelGenerate(struct PatternModel *pattern,
       // up right corner is the pivot of the Rectangle
       rectangleMove(rect, (w * -width), (h * -height));
 
-      pattern->units[(h * numWidth) + w] = rect;
+      pattern->units[(h * pattern->numWidth) + w] = rect;
     }
   }
 
@@ -307,30 +309,93 @@ static void modelGenerate(struct PatternModel *pattern,
   pattern->vertexWireframe =
       defenseMalloc(pattern->wireframeVertexCounts * 3 * sizeof(GLfloat));
 
-  patternModelInitPos(pattern);
-  patternModelInitColor(pattern);
-  patternModelInitUV(pattern);
+  // patternModelInitPos(pattern);
+  // patternModelInitColor(pattern);
+  // patternModelInitUV(pattern);
 }
+
+static void modelGenerate02(struct PatternModel *pattern) {
+  modelGenerate01(pattern);
+
+  double width = (GLfloat)__GL_VIEWPORT / (GLfloat)pattern->numWidth;
+  double moveAmount = tan(45 * ONE_DEG_IN_RAD) * width;
+
+  for (int h = 0; h < pattern->numHeight; h++) {
+    for (int w = 0; w < pattern->numWidth; w++) {
+      struct Rectangle *rect = pattern->units[(h * pattern->numWidth) + w];
+
+      if (w % 2 == 0) {
+        rectangleMoveEdge(rect, 0, 3, 0.0f, -moveAmount);
+      } else {
+        rectangleMoveEdge(rect, 1, 2, 0.0f, -moveAmount);
+      }
+    }
+  }
+}
+
+static void getDimensionNumber01(struct PatternModel *pattern,
+                                 const unsigned int cpy) {
+  double gcd = euclidGCD(pattern->sizeX, pattern->sizeY);
+  double lcm =
+      gcd * ((double)pattern->sizeX / gcd) * ((double)pattern->sizeY / gcd);
+
+  double numWidth = (lcm / (double)pattern->sizeX) * cpy;
+  double numHeight = (lcm / (double)pattern->sizeY) * cpy;
+
+  pattern->numWidth = (unsigned int)numWidth;
+  pattern->numHeight = (unsigned int)numHeight;
+}
+
+static void getDimensionNumber02(struct PatternModel *pattern,
+                                 const unsigned int cpy) {
+  double gcd = euclidGCD(pattern->sizeX * 2, pattern->sizeY);
+
+  // g_print("gcd: %f\n", gcd);
+
+  double lcm =
+      gcd * ((double)pattern->sizeX * 2 / gcd) * ((double)pattern->sizeY / gcd);
+
+  // g_print("lcm: %f\n", lcm);
+
+  double numWidth = (lcm / (double)pattern->sizeX) * cpy;
+  double numHeight = (lcm / (double)pattern->sizeY) * cpy;
+
+  pattern->numWidth = (unsigned int)numWidth;
+  pattern->numHeight = (unsigned int)numHeight;
+
+  // g_print("num width: %d\n", pattern->numWidth);
+  // g_print("num height: %d\n", pattern->numHeight);
+}
+
+typedef void dimensionFunc(struct PatternModel *pattern,
+                           const unsigned int cpy);
+typedef void generateFunc(struct PatternModel *pattern);
+
+/////////////////////////////////////////////////////////
 
 struct PatternModel *patternModelNew(GtkGLArea *glArea,
                                      const unsigned int sizeX,
                                      const unsigned int sizeY,
-                                     const unsigned int cpy) {
+                                     const unsigned int cpy,
+                                     const unsigned int patternIndex) {
   struct PatternModel *pattern = defenseMalloc(sizeof(struct PatternModel));
 
   pattern->sizeX = sizeX;
   pattern->sizeY = sizeY;
 
-  double gcd = euclidGCD(sizeX, sizeY);
-  double lcm = gcd * (sizeX / gcd) * (sizeY / gcd);
+  dimensionFunc *dimensionNumberFunc[2] = {
+      getDimensionNumber01, getDimensionNumber02,
+  };
+  generateFunc *modelGenerateFunc[2] = {
+      modelGenerate01, modelGenerate02,
+  };
 
-  double numWidth = (lcm / sizeX) * cpy;
-  double numHeight = (lcm / sizeY) * cpy;
+  dimensionNumberFunc[patternIndex](pattern, cpy);
+  modelGenerateFunc[patternIndex](pattern);
 
-  pattern->numWidth = numWidth;
-  pattern->numHeight = numHeight;
-
-  modelGenerate(pattern, numWidth, numHeight);
+  patternModelInitPos(pattern);
+  patternModelInitColor(pattern);
+  patternModelInitUV(pattern);
 
   gtk_gl_area_make_current(glArea);
 
@@ -354,6 +419,10 @@ struct PatternModel *patternModelNew(GtkGLArea *glArea,
   pattern->vao = vao;
 
   pattern->seamlessModel = NULL;
+
+  if (patternIndex != 0) {
+    patternModelSeamlessModelConstruct(pattern, glArea);
+  }
 
   return pattern;
 }

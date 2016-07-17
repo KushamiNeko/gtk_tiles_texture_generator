@@ -71,17 +71,17 @@ struct Rectangle *rectangleClone(struct Rectangle *rect) {
   re->uv[3][0] = rect->uv[3][0];
   re->uv[3][1] = rect->uv[3][1];
 
-  re->xMax[0] = rect->xMax[0];
-  re->xMax[1] = rect->xMax[1];
+  re->xMax = rect->xMax;
+  // re->xMax = rect->xMax;
 
-  re->xMin[0] = rect->xMin[0];
-  re->xMin[1] = rect->xMin[1];
+  re->xMin = rect->xMin;
+  // re->xMin = rect->xMin;
 
-  re->yMax[0] = rect->yMax[0];
-  re->yMax[1] = rect->xMax[1];
+  re->yMax = rect->yMax;
+  // re->yMax = rect->xMax;
 
-  re->yMin[0] = rect->yMin[0];
-  re->yMin[1] = rect->yMin[1];
+  re->yMin = rect->yMin;
+  // re->yMin = rect->yMin;
 
   re->pivot = rect->pivot;
   //  re->pivot = (GLfloat *)defenseMalloc(3 * sizeof(GLfloat));
@@ -136,10 +136,10 @@ struct Rectangle *rectangleNew() {
   // memory space
   // re->pivot = (GLfloat **)defenseMalloc(sizeof(GLfloat *));
 
-  re->xMax = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
-  re->xMin = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
-  re->yMax = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
-  re->yMin = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
+  //  re->xMax = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
+  //  re->xMin = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
+  //  re->yMax = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
+  //  re->yMin = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
 
   for (int i = 0; i < 4; i++) {
     re->position[i] = (GLfloat *)defenseMalloc(3 * sizeof(GLfloat));
@@ -174,17 +174,17 @@ struct Rectangle *rectangleNew() {
   re->uv[3][0] = 1.0f;
   re->uv[3][1] = 0.0f;
 
-  re->xMax[0] = 0;
-  re->xMax[1] = 3;
+  re->xMax = 0;
+  // re->xMax = 3;
 
-  re->xMin[0] = 1;
-  re->xMin[1] = 2;
+  re->xMin = 1;
+  // re->xMin = 2;
 
-  re->yMax[0] = 0;
-  re->yMax[1] = 1;
+  re->yMax = 0;
+  // re->yMax = 1;
 
-  re->yMin[0] = 2;
-  re->yMin[1] = 3;
+  re->yMin = 2;
+  // re->yMin = 3;
 
   re->pivot = 0;
   //  re->pivot = (GLfloat *)defenseMalloc(3 * sizeof(GLfloat));
@@ -233,6 +233,66 @@ void rectangleMoveTo(struct Rectangle *rect, GLfloat x, GLfloat y) {
   rectangleMove(rect, mX, mY);
 }
 
+void checkMaxMinValue(struct Rectangle *rect) {
+  rect->xMax = 0;
+  rect->xMin = 0;
+  rect->yMax = 0;
+  rect->yMin = 0;
+
+  for (int i = 1; i < 4; i++) {
+    if (rect->position[i][0] > rect->position[rect->xMax][0]) {
+      rect->xMax = i;
+    }
+
+    if (rect->position[i][0] < rect->position[rect->xMin][0]) {
+      rect->xMin = i;
+    }
+
+    if (rect->position[i][1] > rect->position[rect->yMax][1]) {
+      rect->yMax = i;
+    }
+
+    if (rect->position[i][1] < rect->position[rect->yMin][1]) {
+      rect->yMin = i;
+    }
+  }
+}
+
+void rectangleMovePoint(struct Rectangle *rect, unsigned int pointNumber,
+                        GLfloat x, GLfloat y) {
+  rect->position[pointNumber][0] += x;
+  rect->position[pointNumber][1] += y;
+
+  rect->uv[pointNumber][0] += x;
+  rect->uv[pointNumber][1] += y;
+
+  constructRectangleVertexPos(rect);
+  constructRectangleVertexUV(rect);
+
+  checkMaxMinValue(rect);
+}
+
+void rectangleMoveEdge(struct Rectangle *rect, unsigned int pointNumber01,
+                       unsigned int pointNumber02, GLfloat x, GLfloat y) {
+
+  rect->position[pointNumber01][0] += x;
+  rect->position[pointNumber01][1] += y;
+
+  rect->position[pointNumber02][0] += x;
+  rect->position[pointNumber02][1] += y;
+
+  rect->uv[pointNumber01][0] += x;
+  rect->uv[pointNumber01][1] += y;
+
+  rect->uv[pointNumber02][0] += x;
+  rect->uv[pointNumber02][1] += y;
+
+  checkMaxMinValue(rect);
+
+  constructRectangleVertexPos(rect);
+  constructRectangleVertexUV(rect);
+}
+
 void rectangleInitUVScale(struct Rectangle *rect) {
   rect->uv[0][0] = 1.0f;
   rect->uv[0][1] = 1.0f;
@@ -249,28 +309,28 @@ void rectangleInitUVScale(struct Rectangle *rect) {
   if (rect->width > rect->height) {
     GLfloat scaleFactor = rect->height / rect->width;
 
-    GLfloat width = rect->uv[rect->xMax[0]][0] - rect->uv[rect->xMin[0]][0];
-    scaleFactor = rect->uv[rect->yMin[0]][1] + (width * scaleFactor);
+    GLfloat width = rect->uv[rect->xMax][0] - rect->uv[rect->xMin][0];
+    scaleFactor = rect->uv[rect->yMin][1] + (width * scaleFactor);
 
-    rect->uv[rect->yMax[0]][1] = scaleFactor;
-    rect->uv[rect->yMax[1]][1] = scaleFactor;
+    rect->uv[0][1] = scaleFactor;
+    rect->uv[1][1] = scaleFactor;
 
   } else if (rect->width < rect->height) {
     GLfloat scaleFactor = rect->width / rect->height;
 
-    GLfloat height = rect->uv[rect->yMax[0]][1] - rect->uv[rect->yMin[0]][1];
-    scaleFactor = rect->uv[rect->xMin[0]][0] + (height * scaleFactor);
+    GLfloat height = rect->uv[rect->yMax][1] - rect->uv[rect->yMin][1];
+    scaleFactor = rect->uv[rect->xMin][0] + (height * scaleFactor);
 
-    rect->uv[rect->xMax[0]][0] = scaleFactor;
-    rect->uv[rect->xMax[1]][0] = scaleFactor;
+    rect->uv[0][0] = scaleFactor;
+    rect->uv[3][0] = scaleFactor;
   }
 }
 
 void rectangleSetWidth(struct Rectangle *rect, GLfloat width) {
   // explicitily performing the sequential operation rather than construct a
   // loop to prevent the overhead of loop construction in this simple case
-  rect->position[rect->xMin[0]][0] = rect->position[rect->xMax[0]][0] - width;
-  rect->position[rect->xMin[1]][0] = rect->position[rect->xMax[0]][0] - width;
+  rect->position[1][0] = rect->position[0][0] - width;
+  rect->position[2][0] = rect->position[3][0] - width;
 
   rect->width = width;
 
@@ -284,8 +344,8 @@ void rectangleSetHeight(struct Rectangle *rect, GLfloat height) {
   // explicitily performing the sequential operation rather than construct a
   // loop to prevent the overhead of loop construction in this simple case
 
-  rect->position[rect->yMin[0]][1] = rect->position[rect->yMax[0]][1] - height;
-  rect->position[rect->yMin[1]][1] = rect->position[rect->yMax[0]][1] - height;
+  rect->position[2][1] = rect->position[0][1] - height;
+  rect->position[3][1] = rect->position[1][1] - height;
 
   rect->height = height;
 
@@ -376,10 +436,10 @@ void rectangleFree(struct Rectangle *re) {
   free(re->position);
   free(re->uv);
 
-  free(re->xMin);
-  free(re->yMin);
-  free(re->xMax);
-  free(re->yMax);
+  // free(re->xMin);
+  // free(re->yMin);
+  // free(re->xMax);
+  // free(re->yMax);
 
   free(re->vertexOrder);
   free(re->vertexPosition);

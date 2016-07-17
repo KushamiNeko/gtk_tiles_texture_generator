@@ -1,11 +1,11 @@
-#ifndef PATTERN_ALPHA_MODEL_H
-#define PATTERN_ALPHA_MODEL_H
+#ifndef PATTERN_MODEL_H
+#define PATTERN_MODEL_H
 
 #include <GL/glew.h>
 #include <gtk-3.0/gtk/gtk.h>
 
-#include "rectangle.h"
 #include "constant.h"
+#include "rectangle.h"
 //#include "gl_helper.h"
 #include "../../../general/src/header/general_helper.h"
 //#include "../../../general/src/header/general_list.h"
@@ -58,7 +58,8 @@ extern void patternModelRandomizeUVRotate(struct PatternModel *pattern);
 extern struct PatternModel *patternModelNew(GtkGLArea *glArea,
                                             const unsigned int sizeX,
                                             const unsigned int sizeY,
-                                            const unsigned int cpy);
+                                            const unsigned int cpy,
+                                            const unsigned int patternIndex);
 
 extern void patternModelFree(struct PatternModel *pattern);
 
