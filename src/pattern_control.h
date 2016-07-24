@@ -10,8 +10,8 @@
 
 #include "constant.h"
 
-#include "../../../general/src/header/general_helper.h"
-#include "../../../general/src/header/gl_helper.h"
+#include "../../general/src/general_helper.h"
+#include "../../general/src/gl_helper.h"
 #include "pattern_model.h"
 
 // extern void *patternAlphaNew(const char *patternName);
