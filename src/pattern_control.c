@@ -1,7 +1,7 @@
-#include "../header/pattern_control.h"
+#include "pattern_control.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "../../../third_party/stb/stb_image_write.h"
+#include "../../third_party/stb/stb_image_write.h"
 
 struct PatternData {
   GtkGLArea *glArea;
@@ -291,18 +291,20 @@ static void uvRotateToggled(GtkToggleButton *toggleButton, void *userData) {
     patternModelRandomizeUVRotate(user->pattern);
   }
 
-  double scaleRangeValue =
-      gtk_range_get_value(GTK_RANGE(control->uvScaleSlider));
-  double scaleFactor = normalizeUVScaleRange(scaleRangeValue);
+  uvScaleChanged(GTK_RANGE(control->uvScaleSlider), userData);
 
-  patternModelScaleUV(user->pattern, scaleFactor);
+  /* double scaleRangeValue = */
+  /*     gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)); */
+  /* double scaleFactor = normalizeUVScaleRange(scaleRangeValue); */
 
-  patternModelSeamlessModelConstruct(user->pattern, user->glArea);
+  /* patternModelScaleUV(user->pattern, scaleFactor); */
 
-  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  /* patternModelSeamlessModelConstruct(user->pattern, user->glArea); */
 
-  setVBOData(&user->pattern->uvVBO, user->pattern->vertexCounts, 2,
-             user->pattern->vertexUV);
+  /* fitSeamlessModelColor(user->pattern, colorMin, colorMax); */
+
+  /* setVBOData(&user->pattern->uvVBO, user->pattern->vertexCounts, 2, */
+  /*            user->pattern->vertexUV); */
 
   gtk_gl_area_queue_render(user->glArea);
 }
@@ -393,98 +395,6 @@ static void patternOffsetRandom(struct PatternData *user, const int direction) {
   }
 }
 
-static void offsetTypeChanged(GtkComboBox *widget, void *userData) {
-  struct ControlData *control = (struct ControlData *)userData;
-  struct PatternData *user = control->patternData;
-
-  gtk_range_set_value(GTK_RANGE(control->offsetControlSlider), 0.0f);
-
-  patternModelInitUnitsPosition(user->pattern);
-
-  if (user->pattern->seamlessModel) {
-    patternModelFree(user->pattern->seamlessModel);
-    user->pattern->seamlessModel = NULL;
-  }
-
-  // offsetControlLabel = gtk_label_new("Offset Control: ");
-
-  gint offsetType = gtk_combo_box_get_active(widget);
-
-  if (offsetType == 2) {
-    gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetControlTypeComboBox),
-                             1);
-
-    gtk_label_set_text(GTK_LABEL(control->offsetControlLabel),
-                       "Random Offset Seed: ");
-
-    gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeLabel),
-                             FALSE);
-
-    gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeComboBox),
-                             FALSE);
-
-  gint direction =
-      gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetDirectionComboBox));
-
-    patternOffsetRandom(user, direction);
-
-    double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
-    double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
-
-    patternModelSeamlessModelConstruct(user->pattern, user->glArea);
-
-    fitSeamlessModelColor(user->pattern, colorMin, colorMax);
-  } else {
-    gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetControlTypeComboBox),
-                             0);
-
-    gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeLabel), TRUE);
-
-    gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeComboBox),
-                             TRUE);
-
-    gtk_label_set_text(GTK_LABEL(control->offsetControlLabel),
-                       "Offset Control: ");
-  }
-
-  setVBOData(&user->pattern->positionVBO, user->pattern->vertexCounts, 3,
-             user->pattern->vertexPosition);
-
-  setVBOData(&user->pattern->wireframeVBO, user->pattern->wireframeVertexCounts,
-             3, user->pattern->vertexWireframe);
-
-  gtk_gl_area_queue_render(user->glArea);
-}
-
-static void offsetControlTypeChanged(GtkComboBox *widget, void *userData) {
-  struct ControlData *control = (struct ControlData *)userData;
-  struct PatternData *user = control->patternData;
-
-  gint offsetControlType = gtk_combo_box_get_active(widget);
-  // g_print("offset control type: %d\n", offsetControlType);
-
-  if (offsetControlType == 0) {
-    gtk_range_set_range(GTK_RANGE(control->offsetControlSlider), 1.0f, 7.0f);
-    gtk_range_set_increments(GTK_RANGE(control->offsetControlSlider), 1.0f,
-                             1.0f);
-
-    gtk_scale_set_digits(GTK_SCALE(control->offsetControlSlider), 0);
-
-    gtk_range_set_value(GTK_RANGE(control->offsetControlSlider), 1.0f);
-  } else if (offsetControlType == 1) {
-    gtk_range_set_range(GTK_RANGE(control->offsetControlSlider), -1.0f, 1.0f);
-
-    gtk_range_set_increments(GTK_RANGE(control->offsetControlSlider), 0.001f,
-                             0.001f);
-
-    gtk_scale_set_digits(GTK_SCALE(control->offsetControlSlider), 3);
-
-    gtk_range_set_value(GTK_RANGE(control->offsetControlSlider), 0.0f);
-  }
-
-  gtk_gl_area_queue_render(user->glArea);
-}
-
 static void offsetControlChanged(GtkRange *range, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
   struct PatternData *user = control->patternData;
@@ -540,6 +450,103 @@ static void offsetControlChanged(GtkRange *range, void *userData) {
   fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   // queue openGL render
+  gtk_gl_area_queue_render(user->glArea);
+}
+
+static void offsetTypeChanged(GtkComboBox *widget, void *userData) {
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *user = control->patternData;
+
+  gtk_range_set_value(GTK_RANGE(control->offsetControlSlider), 0.0f);
+
+  patternModelInitUnitsPosition(user->pattern);
+
+  if (user->pattern->seamlessModel) {
+    patternModelFree(user->pattern->seamlessModel);
+    user->pattern->seamlessModel = NULL;
+  }
+
+  // offsetControlLabel = gtk_label_new("Offset Control: ");
+
+  gint offsetType = gtk_combo_box_get_active(widget);
+
+  if (offsetType == 2) {
+    gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetControlTypeComboBox),
+                             1);
+
+    gtk_label_set_text(GTK_LABEL(control->offsetControlLabel),
+                       "Random Offset Seed: ");
+
+    gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeLabel),
+                             FALSE);
+
+    gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeComboBox),
+                             FALSE);
+
+    /* gint direction = gtk_combo_box_get_active( */
+    /*     GTK_COMBO_BOX(control->offsetDirectionComboBox)); */
+
+    /* patternOffsetRandom(user, direction); */
+
+    /* double colorMin =
+     * gtk_range_get_value(GTK_RANGE(control->colorMinSlider)); */
+    /* double colorMax =
+     * gtk_range_get_value(GTK_RANGE(control->colorMaxSlider)); */
+
+    /* patternModelSeamlessModelConstruct(user->pattern, user->glArea); */
+
+    /* fitSeamlessModelColor(user->pattern, colorMin, colorMax); */
+  } else {
+    gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetControlTypeComboBox),
+                             0);
+
+    gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeLabel), TRUE);
+
+    gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeComboBox),
+                             TRUE);
+
+    gtk_label_set_text(GTK_LABEL(control->offsetControlLabel),
+                       "Offset Control: ");
+  }
+
+  offsetControlChanged(GTK_RANGE(control->offsetControlSlider), userData);
+
+  /* setVBOData(&user->pattern->positionVBO, user->pattern->vertexCounts, 3, */
+  /*            user->pattern->vertexPosition); */
+
+  /* setVBOData(&user->pattern->wireframeVBO,
+   * user->pattern->wireframeVertexCounts, */
+  /*            3, user->pattern->vertexWireframe); */
+
+  /* gtk_gl_area_queue_render(user->glArea); */
+}
+
+static void offsetControlTypeChanged(GtkComboBox *widget, void *userData) {
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *user = control->patternData;
+
+  gint offsetControlType = gtk_combo_box_get_active(widget);
+  // g_print("offset control type: %d\n", offsetControlType);
+
+  if (offsetControlType == 0) {
+    gtk_range_set_range(GTK_RANGE(control->offsetControlSlider), 1.0f, 7.0f);
+    gtk_range_set_increments(GTK_RANGE(control->offsetControlSlider), 1.0f,
+                             1.0f);
+
+    gtk_scale_set_digits(GTK_SCALE(control->offsetControlSlider), 0);
+
+    gtk_range_set_value(GTK_RANGE(control->offsetControlSlider), 1.0f);
+  } else if (offsetControlType == 1) {
+    gtk_range_set_range(GTK_RANGE(control->offsetControlSlider), -1.0f, 1.0f);
+
+    gtk_range_set_increments(GTK_RANGE(control->offsetControlSlider), 0.001f,
+                             0.001f);
+
+    gtk_scale_set_digits(GTK_SCALE(control->offsetControlSlider), 3);
+
+    gtk_range_set_value(GTK_RANGE(control->offsetControlSlider), 0.0f);
+  }
+
   gtk_gl_area_queue_render(user->glArea);
 }
 
@@ -649,6 +656,83 @@ static void numCpyChanged(GtkRange *range, void *userData) {
 
   // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
+}
+
+static void patternTypeChanged(GtkComboBox *widget, void *userData) {
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *user = control->patternData;
+
+  gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetDirectionComboBox), 1);
+  gtk_widget_set_sensitive(control->offsetDirectionComboBox, FALSE);
+
+  /* gtk_range_set_value(GTK_RANGE(control->offsetControlSlider), 0.0f); */
+  /* patternModelInitUnitsPosition(user->pattern); */
+
+  /* if (user->pattern->seamlessModel) { */
+  /*   patternModelFree(user->pattern->seamlessModel); */
+  /*   user->pattern->seamlessModel = NULL; */
+  /* } */
+
+  /* // offsetControlLabel = gtk_label_new("Offset Control: "); */
+
+  /* gint offsetType = gtk_combo_box_get_active(widget); */
+
+  /* if (offsetType == 2) { */
+
+  /*   gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetControlTypeComboBox),
+   */
+  /*                            1); */
+
+  /*   gtk_label_set_text(GTK_LABEL(control->offsetControlLabel), */
+  /*                      "Random Offset Seed: "); */
+
+  /*   gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeLabel), */
+  /*                            FALSE); */
+
+  /*   gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeComboBox),
+   */
+  /*                            FALSE); */
+
+  /* gint direction = */
+  /*     gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetDirectionComboBox));
+   */
+
+  /*   patternOffsetRandom(user, direction); */
+
+  /*   double colorMin = */
+  /*   gtk_range_get_value(GTK_RANGE(control->colorMinSlider)); */
+  /*   double colorMax = */
+  /*   gtk_range_get_value(GTK_RANGE(control->colorMaxSlider)); */
+
+  /*   patternModelSeamlessModelConstruct(user->pattern, user->glArea); */
+
+  /*   fitSeamlessModelColor(user->pattern, colorMin, colorMax); */
+  /* } else { */
+  /*   gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetControlTypeComboBox),
+   */
+  /*                            0); */
+
+  /*   gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeLabel), */
+  /*   TRUE); */
+
+  /*   gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeComboBox),
+   */
+  /*                            TRUE); */
+
+  /*   gtk_label_set_text(GTK_LABEL(control->offsetControlLabel), */
+  /*                      "Offset Control: "); */
+  /* } */
+
+  /* setVBOData(&user->pattern->positionVBO, user->pattern->vertexCounts, 3, */
+  /*            user->pattern->vertexPosition); */
+
+  /* setVBOData(&user->pattern->wireframeVBO, */
+  /* user->pattern->wireframeVertexCounts, */
+  /*            3, user->pattern->vertexWireframe); */
+
+  /* gtk_gl_area_queue_render(user->glArea); */
+
+  numCpyChanged(GTK_RANGE(control->numCpySlider), userData);
 }
 
 static void colorRangeChanged(GtkRange *range, void *userData) {
@@ -1516,6 +1600,9 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   gtk_container_add(GTK_CONTAINER(controlBox), renderButton);
 
   // signal connection
+
+  g_signal_connect(patternTypeComboBox, "changed",
+                   G_CALLBACK(patternTypeChanged), control);
 
   g_signal_connect(widthEntryBuffer, "inserted-text",
                    G_CALLBACK(entryBufferInserted), control);

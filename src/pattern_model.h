@@ -6,10 +6,10 @@
 
 #include "constant.h"
 #include "rectangle.h"
-//#include "gl_helper.h"
-#include "../../../general/src/header/general_helper.h"
-//#include "../../../general/src/header/general_list.h"
-#include "../../../general/src/header/gl_helper.h"
+
+#include "../../general/src/general_helper.h"
+
+#include "../../general/src/gl_helper.h"
 
 struct PatternModel {
   unsigned int sizeX;

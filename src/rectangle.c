@@ -1,4 +1,4 @@
-#include "../header/rectangle.h"
+#include "rectangle.h"
 
 #ifdef UNIT_TESTING
 #define __malloc malloc

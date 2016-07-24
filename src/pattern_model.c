@@ -1,4 +1,4 @@
-#include "../header/pattern_model.h"
+#include "pattern_model.h"
 
 #ifdef UNIT_TESTING
 #define __malloc malloc
@@ -160,15 +160,31 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
   for (int i = 0; i < pattern->numUnits; i++) {
     struct Rectangle *rect = pattern->units[i];
 
-    if (rect->position[rect->xMax][0] > 1.0f ||
-        rect->position[rect->xMin][0] < -1.0f ||
-        rect->position[rect->yMax][1] > 1.0f ||
-        rect->position[rect->yMin][1] < -1.0f) {
+    //    if (rect->position[rect->xMax][0] > 1.0f ||
+    //  rect->position[rect->xMin][0] < -1.0f ||
+    //  rect->position[rect->yMax][1] > 1.0f ||
+    //  rect->position[rect->yMin][1] < -1.0f) {
+    // numNew++;
+    //}
+
+    if (rect->position[rect->xMax][0] > 1.0f) {
+      numNew++;
+    }
+
+    if (rect->position[rect->xMin][0] < -1.0f) {
+      numNew++;
+    }
+
+    if (rect->position[rect->yMax][1] > 1.0f) {
+      numNew++;
+    }
+
+    if (rect->position[rect->yMin][1] < -1.0f) {
       numNew++;
     }
   }
 
-  g_print("num new: %d\n", numNew);
+  // g_print("num new: %d\n", numNew);
 
   if (numNew != 0) {
     struct PatternModel *re = defenseMalloc(sizeof(struct PatternModel));
@@ -193,21 +209,39 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
       if (rect->position[rect->xMax][0] > 1.0f) {
         newRect = rectangleClone(rect);
         rectangleMove(newRect, -__GL_VIEWPORT, 0);
-      } else if (rect->position[rect->xMin][0] < -1.0f) {
-        newRect = rectangleClone(rect);
-        rectangleMove(newRect, __GL_VIEWPORT, 0);
-      } else if (rect->position[rect->yMax][1] > 1.0f) {
-        newRect = rectangleClone(rect);
-        rectangleMove(newRect, 0, -__GL_VIEWPORT);
-      } else if (rect->position[rect->yMin][1] < -1.0f) {
-        newRect = rectangleClone(rect);
-        rectangleMove(newRect, 0, __GL_VIEWPORT);
-      }
 
-      if (newRect) {
         re->units[newIndex] = newRect;
         newIndex++;
       }
+
+      if (rect->position[rect->xMin][0] < -1.0f) {
+        newRect = rectangleClone(rect);
+        rectangleMove(newRect, __GL_VIEWPORT, 0);
+
+        re->units[newIndex] = newRect;
+        newIndex++;
+      }
+
+      if (rect->position[rect->yMax][1] > 1.0f) {
+        newRect = rectangleClone(rect);
+        rectangleMove(newRect, 0, -__GL_VIEWPORT);
+
+        re->units[newIndex] = newRect;
+        newIndex++;
+      }
+
+      if (rect->position[rect->yMin][1] < -1.0f) {
+        newRect = rectangleClone(rect);
+        rectangleMove(newRect, 0, __GL_VIEWPORT);
+
+        re->units[newIndex] = newRect;
+        newIndex++;
+      }
+
+      // if (newRect) {
+      //  re->units[newIndex] = newRect;
+      //  newIndex++;
+      //}
     }
 
     re->vertexCounts = re->numUnits * (*re->units)->vertexCounts;

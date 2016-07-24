@@ -5,7 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "../../../general/src/header/general_helper.h"
+#include "../../general/src/general_helper.h"
 #include "constant.h"
 
 struct Rectangle {

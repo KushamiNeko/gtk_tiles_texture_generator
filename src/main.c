@@ -3,10 +3,10 @@
 #include <GL/glew.h>
 #include <stdarg.h>
 
-#include "header/constant.h"
-#include "header/pattern_control.h"
+#include "constant.h"
+#include "pattern_control.h"
 
-#include "../../general/src/header/general_helper.h"
+#include "../../general/src/general_helper.h"
 
 // struct PatternControl {
 //  void *(*initPatternControl)(GtkWindow *mainWindow, GtkContainer *container,
