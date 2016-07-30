@@ -662,75 +662,16 @@ static void patternTypeChanged(GtkComboBox *widget, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
   struct PatternData *user = control->patternData;
 
-  gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetDirectionComboBox), 1);
-  gtk_widget_set_sensitive(control->offsetDirectionComboBox, FALSE);
+  guint patternType = gtk_combo_box_get_active(GTK_COMBO_BOX(control->patternTypeComboBox));
 
-  /* gtk_range_set_value(GTK_RANGE(control->offsetControlSlider), 0.0f); */
-  /* patternModelInitUnitsPosition(user->pattern); */
-
-  /* if (user->pattern->seamlessModel) { */
-  /*   patternModelFree(user->pattern->seamlessModel); */
-  /*   user->pattern->seamlessModel = NULL; */
-  /* } */
-
-  /* // offsetControlLabel = gtk_label_new("Offset Control: "); */
-
-  /* gint offsetType = gtk_combo_box_get_active(widget); */
-
-  /* if (offsetType == 2) { */
-
-  /*   gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetControlTypeComboBox),
-   */
-  /*                            1); */
-
-  /*   gtk_label_set_text(GTK_LABEL(control->offsetControlLabel), */
-  /*                      "Random Offset Seed: "); */
-
-  /*   gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeLabel), */
-  /*                            FALSE); */
-
-  /*   gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeComboBox),
-   */
-  /*                            FALSE); */
-
-  /* gint direction = */
-  /*     gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetDirectionComboBox));
-   */
-
-  /*   patternOffsetRandom(user, direction); */
-
-  /*   double colorMin = */
-  /*   gtk_range_get_value(GTK_RANGE(control->colorMinSlider)); */
-  /*   double colorMax = */
-  /*   gtk_range_get_value(GTK_RANGE(control->colorMaxSlider)); */
-
-  /*   patternModelSeamlessModelConstruct(user->pattern, user->glArea); */
-
-  /*   fitSeamlessModelColor(user->pattern, colorMin, colorMax); */
-  /* } else { */
-  /*   gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetControlTypeComboBox),
-   */
-  /*                            0); */
-
-  /*   gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeLabel), */
-  /*   TRUE); */
-
-  /*   gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeComboBox),
-   */
-  /*                            TRUE); */
-
-  /*   gtk_label_set_text(GTK_LABEL(control->offsetControlLabel), */
-  /*                      "Offset Control: "); */
-  /* } */
-
-  /* setVBOData(&user->pattern->positionVBO, user->pattern->vertexCounts, 3, */
-  /*            user->pattern->vertexPosition); */
-
-  /* setVBOData(&user->pattern->wireframeVBO, */
-  /* user->pattern->wireframeVertexCounts, */
-  /*            3, user->pattern->vertexWireframe); */
-
-  /* gtk_gl_area_queue_render(user->glArea); */
+  if (patternType == 0) {
+      gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetDirectionComboBox), 0);
+      gtk_widget_set_sensitive(control->offsetDirectionComboBox, TRUE);
+  } else if (patternType == 1) {
+    gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetDirectionComboBox),
+                             1);
+    gtk_widget_set_sensitive(control->offsetDirectionComboBox, FALSE);
+  }
 
   numCpyChanged(GTK_RANGE(control->numCpySlider), userData);
 }
