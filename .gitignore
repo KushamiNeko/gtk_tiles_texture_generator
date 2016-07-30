@@ -7,3 +7,7 @@ src/third_party
 tag
 TAGS
 .clang_complete
+<<<<<<< HEAD
+=======
+*.*~
+>>>>>>> refactoring_second_attemp

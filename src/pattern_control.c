@@ -1,7 +1,7 @@
-#include "../header/control.h"
+#include "pattern_control.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "../third_party/stb/stb_image_write.h"
+#include "../../third_party/stb/stb_image_write.h"
 
 struct PatternData {
   GtkGLArea *glArea;
@@ -26,26 +26,12 @@ struct PatternData {
 };
 
 static gboolean patternDataInitTexMap(struct PatternData *patternData) {
-  //  struct ControlData *control = (struct ControlData *)userData;
-  //  struct PatternData *user = control->patternData;
-  //  if (loadTexture(patternData->textureFile, &(patternData->shaderProgram),
-  //                  GL_TEXTURE0, "diff_tex") != 1) {
-  //    g_print("Texture loading failed: %s\n", patternData->textureFile);
-  //  }
-
   if (loadTexture(patternData->textureFile, &(patternData->shaderProgram),
                   GL_TEXTURE0, &(patternData->tex),
                   &(patternData->texLoc)) != 1) {
-    //    g_print("Texture loading failed: %s\n", patternData->textureFile);
     return FALSE;
   }
   return TRUE;
-
-  //  if (loadTexture(patternData->textureFile, GL_TEXTURE0, patternData->tex)
-  //  !=
-  //      1) {
-  //    printf("failed to load texture: %s\n", patternData->textureFile);
-  //  }
 }
 
 static struct PatternData *patternDataNew(GtkGLArea *glArea,
@@ -99,29 +85,39 @@ static struct PatternData *patternDataNew(GtkGLArea *glArea,
   return re;
 }
 
-// static void patternDataFree(struct PatternData *data) {
-//  patternModelFree(data->pattern);
-//  // free(data);
-//}
-
 struct ControlData {
   struct PatternData *patternData;
 
   GtkWindow *mainWindow;
   GtkWidget *controlBox;
 
+  GtkWidget *patternTypeComboBox;
+
   GtkWidget *widthEntry;
   GtkWidget *heightEntry;
 
   GtkWidget *numCpySlider;
 
+  //////////////////////////////////////////////////////////////
+
+  GtkWidget *uniqueControlStack;
+
+  //////////////////////////////////////////////////////////////
+
   GtkWidget *offsetTypeComboBox;
+
+  //  GtkWidget *leanCheckButton;
+  //  GtkWidget *leanControlSlider;
+
+  GtkWidget *offsetDirectionComboBox;
 
   GtkWidget *offsetControlTypeLabel;
   GtkWidget *offsetControlTypeComboBox;
 
   GtkWidget *offsetControlLabel;
   GtkWidget *offsetControlSlider;
+
+  //////////////////////////////////////////////////////////////
 
   GtkWidget *wireframeColorChooser;
   GtkWidget *wireframeWidthSlider;
@@ -295,40 +291,28 @@ static void uvRotateToggled(GtkToggleButton *toggleButton, void *userData) {
     patternModelRandomizeUVRotate(user->pattern);
   }
 
-  double scaleRangeValue =
-      gtk_range_get_value(GTK_RANGE(control->uvScaleSlider));
-  double scaleFactor = normalizeUVScaleRange(scaleRangeValue);
+  uvScaleChanged(GTK_RANGE(control->uvScaleSlider), userData);
 
-  patternModelScaleUV(user->pattern, scaleFactor);
+  /* double scaleRangeValue = */
+  /*     gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)); */
+  /* double scaleFactor = normalizeUVScaleRange(scaleRangeValue); */
 
-  patternModelSeamlessModelConstruct(user->pattern, user->glArea);
+  /* patternModelScaleUV(user->pattern, scaleFactor); */
 
-  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  /* patternModelSeamlessModelConstruct(user->pattern, user->glArea); */
 
-  setVBOData(&user->pattern->uvVBO, user->pattern->vertexCounts, 2,
-             user->pattern->vertexUV);
+  /* fitSeamlessModelColor(user->pattern, colorMin, colorMax); */
+
+  /* setVBOData(&user->pattern->uvVBO, user->pattern->vertexCounts, 2, */
+  /*            user->pattern->vertexUV); */
 
   gtk_gl_area_queue_render(user->glArea);
 }
 
-static void patternOffsetModulo2(struct PatternData *user, GLfloat amount) {
-  patternModelInitUnitsPosition(user->pattern);
+///////////////////////////////////////////////////////////////////////
 
-  for (int i = 0; i < user->pattern->numHeight; i++) {
-    if (i % 2 != 0) {
-      continue;
-    }
-
-    for (int j = 0; j < user->pattern->numWidth; j++) {
-      struct Rectangle *rect =
-          user->pattern->units[(i * user->pattern->numWidth) + j];
-
-      rectangleMove(rect, amount, 0);
-    }
-  }
-}
-
-static void patternOffsetAccumulate(struct PatternData *user, GLfloat amount) {
+static void patternOffsetModulo2(struct PatternData *user, const int direction,
+                                 const GLfloat amount) {
   patternModelInitUnitsPosition(user->pattern);
 
   for (int i = 0; i < user->pattern->numHeight; i++) {
@@ -336,26 +320,137 @@ static void patternOffsetAccumulate(struct PatternData *user, GLfloat amount) {
       struct Rectangle *rect =
           user->pattern->units[(i * user->pattern->numWidth) + j];
 
-      rectangleMove(rect, amount * i, 0);
+      if (direction == 0) {
+        if (i % 2 != 0) {
+          continue;
+        }
+
+        rectangleMove(rect, amount, 0);
+      } else if (direction == 1) {
+        if (j % 2 != 0) {
+          continue;
+        }
+
+        rectangleMove(rect, 0, amount);
+      }
+
+      // rectangleMove(rect, amount, 0);
     }
   }
 }
 
-static void patternOffsetRandom(struct PatternData *user) {
+static void patternOffsetAccumulate(struct PatternData *user,
+                                    const int direction, const GLfloat amount) {
+  patternModelInitUnitsPosition(user->pattern);
+
+  if (direction == 0) {
+    for (int i = 0; i < user->pattern->numHeight; i++) {
+      for (int j = 0; j < user->pattern->numWidth; j++) {
+        struct Rectangle *rect =
+            user->pattern->units[(i * user->pattern->numWidth) + j];
+
+        rectangleMove(rect, amount * i, 0);
+      }
+    }
+  } else if (direction == 1) {
+    for (int i = 0; i < user->pattern->numWidth; i++) {
+      for (int j = 0; j < user->pattern->numHeight; j++) {
+        struct Rectangle *rect =
+            user->pattern->units[(j * user->pattern->numWidth) + i];
+
+        rectangleMove(rect, 0, amount * i);
+      }
+    }
+  }
+}
+
+static void patternOffsetRandom(struct PatternData *user, const int direction) {
   patternModelInitUnitsPosition(user->pattern);
   double width = (GLfloat)__GL_VIEWPORT / user->pattern->numWidth;
 
-  for (int i = 0; i < user->pattern->numHeight; i++) {
-    double randNum = (GLfloat)rand() / (GLfloat)RAND_MAX;
-    randNum = (randNum * 2) - 1;
+  if (direction == 0) {
+    for (int i = 0; i < user->pattern->numHeight; i++) {
+      double randNum = (GLfloat)rand() / (GLfloat)RAND_MAX;
+      randNum = (randNum * 2) - 1;
 
-    for (int j = 0; j < user->pattern->numWidth; j++) {
-      struct Rectangle *rect =
-          user->pattern->units[(i * user->pattern->numWidth) + j];
+      for (int j = 0; j < user->pattern->numWidth; j++) {
+        struct Rectangle *rect =
+            user->pattern->units[(i * user->pattern->numWidth) + j];
 
-      rectangleMove(rect, width * randNum, 0);
+        rectangleMove(rect, width * randNum, 0);
+      }
+    }
+  } else if (direction == 1) {
+    for (int i = 0; i < user->pattern->numWidth; i++) {
+      double randNum = (GLfloat)rand() / (GLfloat)RAND_MAX;
+      randNum = (randNum * 2) - 1;
+
+      for (int j = 0; j < user->pattern->numHeight; j++) {
+        struct Rectangle *rect =
+            user->pattern->units[(j * user->pattern->numWidth) + i];
+
+        rectangleMove(rect, 0, width * randNum);
+      }
     }
   }
+}
+
+static void offsetControlChanged(GtkRange *range, void *userData) {
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *user = control->patternData;
+
+  double width = (GLfloat)__GL_VIEWPORT / user->pattern->numWidth;
+  double height = (GLfloat)__GL_VIEWPORT / user->pattern->numHeight;
+  double offset = gtk_range_get_value(range);
+
+  gint offsetType =
+      gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetTypeComboBox));
+
+  double offsetAmount;
+
+  gint offsetControlType = gtk_combo_box_get_active(
+      GTK_COMBO_BOX(control->offsetControlTypeComboBox));
+
+  gint direction =
+      gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetDirectionComboBox));
+
+  if (offsetControlType == 0) {
+    if (direction == 0) {
+      offsetAmount = width / offset;
+    } else if (direction == 1) {
+      offsetAmount = height / offset;
+    }
+  } else if (offsetControlType == 1) {
+    if (direction == 0) {
+      offsetAmount = width * offset;
+    } else if (direction == 1) {
+      offsetAmount = height * offset;
+    }
+  }
+
+  if (offsetType == 0) {
+    patternOffsetModulo2(user, direction, offsetAmount);
+  } else if (offsetType == 1) {
+    patternOffsetAccumulate(user, direction, offsetAmount);
+  } else if (offsetType == 2) {
+    patternOffsetRandom(user, direction);
+  }
+
+  double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
+  double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
+
+  patternModelSeamlessModelConstruct(user->pattern, user->glArea);
+
+  setVBOData(&user->pattern->positionVBO, user->pattern->vertexCounts, 3,
+             user->pattern->vertexPosition);
+
+  setVBOData(&user->pattern->wireframeVBO, user->pattern->wireframeVertexCounts,
+             3, user->pattern->vertexWireframe);
+
+  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+
+  // queue openGL render
+  gtk_gl_area_queue_render(user->glArea);
 }
 
 static void offsetTypeChanged(GtkComboBox *widget, void *userData) {
@@ -388,14 +483,19 @@ static void offsetTypeChanged(GtkComboBox *widget, void *userData) {
     gtk_widget_set_sensitive(GTK_WIDGET(control->offsetControlTypeComboBox),
                              FALSE);
 
-    patternOffsetRandom(user);
+    /* gint direction = gtk_combo_box_get_active( */
+    /*     GTK_COMBO_BOX(control->offsetDirectionComboBox)); */
 
-    double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
-    double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
+    /* patternOffsetRandom(user, direction); */
 
-    patternModelSeamlessModelConstruct(user->pattern, user->glArea);
+    /* double colorMin =
+     * gtk_range_get_value(GTK_RANGE(control->colorMinSlider)); */
+    /* double colorMax =
+     * gtk_range_get_value(GTK_RANGE(control->colorMaxSlider)); */
 
-    fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+    /* patternModelSeamlessModelConstruct(user->pattern, user->glArea); */
+
+    /* fitSeamlessModelColor(user->pattern, colorMin, colorMax); */
   } else {
     gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetControlTypeComboBox),
                              0);
@@ -409,13 +509,16 @@ static void offsetTypeChanged(GtkComboBox *widget, void *userData) {
                        "Offset Control: ");
   }
 
-  setVBOData(&user->pattern->positionVBO, user->pattern->vertexCounts, 3,
-             user->pattern->vertexPosition);
+  offsetControlChanged(GTK_RANGE(control->offsetControlSlider), userData);
 
-  setVBOData(&user->pattern->wireframeVBO, user->pattern->numUnits * 8, 3,
-             user->pattern->vertexWireframe);
+  /* setVBOData(&user->pattern->positionVBO, user->pattern->vertexCounts, 3, */
+  /*            user->pattern->vertexPosition); */
 
-  gtk_gl_area_queue_render(user->glArea);
+  /* setVBOData(&user->pattern->wireframeVBO,
+   * user->pattern->wireframeVertexCounts, */
+  /*            3, user->pattern->vertexWireframe); */
+
+  /* gtk_gl_area_queue_render(user->glArea); */
 }
 
 static void offsetControlTypeChanged(GtkComboBox *widget, void *userData) {
@@ -447,51 +550,13 @@ static void offsetControlTypeChanged(GtkComboBox *widget, void *userData) {
   gtk_gl_area_queue_render(user->glArea);
 }
 
-static void offsetControlChanged(GtkRange *range, void *userData) {
+static void offsetDirectionChanged(GtkComboBox *widget, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
-  struct PatternData *user = control->patternData;
 
-  double width = (GLfloat)__GL_VIEWPORT / user->pattern->numWidth;
-  double offset = gtk_range_get_value(range);
-
-  gint offsetType =
-      gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetTypeComboBox));
-
-  double offsetAmount;
-
-  gint offsetControlType = gtk_combo_box_get_active(
-      GTK_COMBO_BOX(control->offsetControlTypeComboBox));
-
-  if (offsetControlType == 0) {
-    offsetAmount = width / offset;
-  } else if (offsetControlType == 1) {
-    offsetAmount = width * offset;
-  }
-
-  if (offsetType == 0) {
-    patternOffsetModulo2(user, offsetAmount);
-  } else if (offsetType == 1) {
-    patternOffsetAccumulate(user, offsetAmount);
-  } else if (offsetType == 2) {
-    patternOffsetRandom(user);
-  }
-
-  double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
-  double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
-
-  patternModelSeamlessModelConstruct(user->pattern, user->glArea);
-
-  setVBOData(&user->pattern->positionVBO, user->pattern->vertexCounts, 3,
-             user->pattern->vertexPosition);
-
-  setVBOData(&user->pattern->wireframeVBO, user->pattern->numUnits * 8, 3,
-             user->pattern->vertexWireframe);
-
-  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
-
-  // queue openGL render
-  gtk_gl_area_queue_render(user->glArea);
+  offsetControlChanged(GTK_RANGE(control->offsetControlSlider), userData);
 }
+
+///////////////////////////////////////////////////////////////////////
 
 static void numCpyChanged(GtkRange *range, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
@@ -505,13 +570,18 @@ static void numCpyChanged(GtkRange *range, void *userData) {
   double scaleFactor = normalizeUVScaleRange(
       gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)));
 
-  struct PatternModel *pattern = patternModelNew(
-      user->glArea, user->pattern->sizeX, user->pattern->sizeY, cpy);
+  gint patternIndex =
+      gtk_combo_box_get_active(GTK_COMBO_BOX(control->patternTypeComboBox));
+
+  struct PatternModel *pattern =
+      patternModelNew(user->glArea, user->pattern->sizeX, user->pattern->sizeY,
+                      cpy, patternIndex);
 
   patternModelFree(user->pattern);
   user->pattern = pattern;
 
   double width = (GLfloat)__GL_VIEWPORT / user->pattern->numWidth;
+  double height = (GLfloat)__GL_VIEWPORT / user->pattern->numHeight;
   double offset = gtk_range_get_value(GTK_RANGE(control->offsetControlSlider));
 
   gint offsetType =
@@ -522,18 +592,35 @@ static void numCpyChanged(GtkRange *range, void *userData) {
   gint offsetControlType = gtk_combo_box_get_active(
       GTK_COMBO_BOX(control->offsetControlTypeComboBox));
 
+  // if (offsetControlType == 0) {
+  //  offsetAmount = width / offset;
+  //} else if (offsetControlType == 1) {
+  //  offsetAmount = width * offset;
+  //}
+
+  gint direction =
+      gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetDirectionComboBox));
+
   if (offsetControlType == 0) {
-    offsetAmount = width / offset;
+    if (direction == 0) {
+      offsetAmount = width / offset;
+    } else if (direction == 1) {
+      offsetAmount = height / offset;
+    }
   } else if (offsetControlType == 1) {
-    offsetAmount = width * offset;
+    if (direction == 0) {
+      offsetAmount = width * offset;
+    } else if (direction == 1) {
+      offsetAmount = height * offset;
+    }
   }
 
   if (offsetType == 0) {
-    patternOffsetModulo2(user, offsetAmount);
+    patternOffsetModulo2(user, direction, offsetAmount);
   } else if (offsetType == 1) {
-    patternOffsetAccumulate(user, offsetAmount);
+    patternOffsetAccumulate(user, direction, offsetAmount);
   } else if (offsetType == 2) {
-    patternOffsetRandom(user);
+    patternOffsetRandom(user, direction);
   }
 
   gboolean active = gtk_toggle_button_get_active(
@@ -556,8 +643,8 @@ static void numCpyChanged(GtkRange *range, void *userData) {
   setVBOData(&user->pattern->positionVBO, user->pattern->vertexCounts, 3,
              user->pattern->vertexPosition);
 
-  setVBOData(&user->pattern->wireframeVBO, user->pattern->numUnits * 8, 3,
-             user->pattern->vertexWireframe);
+  setVBOData(&user->pattern->wireframeVBO, user->pattern->wireframeVertexCounts,
+             3, user->pattern->vertexWireframe);
 
   setVBOData(&user->pattern->colorVBO, user->pattern->vertexCounts, 3,
              user->pattern->vertexColor);
@@ -569,6 +656,24 @@ static void numCpyChanged(GtkRange *range, void *userData) {
 
   // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
+}
+
+static void patternTypeChanged(GtkComboBox *widget, void *userData) {
+  struct ControlData *control = (struct ControlData *)userData;
+  struct PatternData *user = control->patternData;
+
+  guint patternType = gtk_combo_box_get_active(GTK_COMBO_BOX(control->patternTypeComboBox));
+
+  if (patternType == 0) {
+      gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetDirectionComboBox), 0);
+      gtk_widget_set_sensitive(control->offsetDirectionComboBox, TRUE);
+  } else if (patternType == 1) {
+    gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetDirectionComboBox),
+                             1);
+    gtk_widget_set_sensitive(control->offsetDirectionComboBox, FALSE);
+  }
+
+  numCpyChanged(GTK_RANGE(control->numCpySlider), userData);
 }
 
 static void colorRangeChanged(GtkRange *range, void *userData) {
@@ -594,10 +699,6 @@ static void wireframeWidthChanged(GtkRange *range, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
   struct PatternData *user = control->patternData;
 
-  //  double newWidth = gtk_range_get_value(range) * 2;
-  //  glLineWidth(newWidth);
-
-  // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
 }
 
@@ -682,8 +783,11 @@ static void dimensionButtonClicked(GtkButton *button, void *userData) {
   double scaleFactor = normalizeUVScaleRange(
       gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)));
 
+  gint patternIndex =
+      gtk_combo_box_get_active(GTK_COMBO_BOX(control->patternTypeComboBox));
+
   struct PatternModel *pattern =
-      patternModelNew(user->glArea, width, height, 1);
+      patternModelNew(user->glArea, width, height, 1, patternIndex);
 
   patternModelFree(user->pattern);
 
@@ -703,22 +807,6 @@ static void dimensionButtonClicked(GtkButton *button, void *userData) {
 
   gtk_gl_area_queue_render(user->glArea);
 }
-
-// static gchar *getTextureFile(GtkWindow *parentWindow) {
-//  GtkWidget *dialog = gtk_file_chooser_dialog_new(
-//      "Open File", parentWindow, GTK_FILE_CHOOSER_ACTION_OPEN, "Cancel",
-//      GTK_RESPONSE_CANCEL, "Open", GTK_RESPONSE_ACCEPT, NULL);
-//
-//  gchar *fileName = NULL;
-//  gint response = gtk_dialog_run(GTK_DIALOG(dialog));
-//  if (response == GTK_RESPONSE_ACCEPT) {
-//    GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-//    fileName = gtk_file_chooser_get_filename(chooser);
-//  }
-//
-//  gtk_widget_destroy(dialog);
-//  return fileName;
-//}
 
 static gchar *getTextureFile(GtkWindow *parentWindow,
                              GtkFileChooserAction action, const gchar *title,
@@ -931,14 +1019,13 @@ static void renderButtonClicked(GtkButton *button, void *userData) {
       glBindVertexArray(user->pattern->vao);
       glUniform1i(user->wireframeDrawUniformLoc, user->wireframeDraw);
       // glDrawArrays(GL_LINES, 0, user->pattern->vertexCounts);
-      glDrawArrays(GL_LINES, 0, user->pattern->numUnits * 8);
+      glDrawArrays(GL_LINES, 0, user->pattern->wireframeVertexCounts);
 
       if (user->pattern->seamlessModel != NULL) {
         glBindVertexArray(user->pattern->seamlessModel->vao);
         glUniform1i(user->wireframeDrawUniformLoc, user->wireframeDraw);
-        // glDrawArrays(GL_LINES, 0,
-        // user->pattern->seamlessModel->vertexCounts);
-        glDrawArrays(GL_LINES, 0, user->pattern->seamlessModel->numUnits * 8);
+        glDrawArrays(GL_LINES, 0,
+                     user->pattern->seamlessModel->wireframeVertexCounts);
       }
 
       wireframeImage =
@@ -957,19 +1044,6 @@ static void renderButtonClicked(GtkButton *button, void *userData) {
   if (wireframeImage != NULL) {
     writePngImage(wireframeImage, wireframePath, renderSize);
   }
-
-  //  unsigned char *imageData =
-  //      (unsigned char *)defenseMalloc(renderSize * renderSize * 3);
-  //
-  //  glBindFramebuffer(GL_FRAMEBUFFER, fb);
-  //  glReadPixels(0, 0, renderSize, renderSize, GL_RGB, GL_UNSIGNED_BYTE,
-  //               imageData);
-
-  //  unsigned char *lastRow = imageData + (renderSize * 3 * (renderSize - 1));
-  //  if (!stbi_write_png(user->renderPath, renderSize, renderSize, 3, lastRow,
-  //                      -3 * renderSize)) {
-  //    g_print("error writing png file\n");
-  //  }
 
   gtk_gl_area_make_current(user->glArea);
 
@@ -1011,6 +1085,8 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
 
   GtkWidget *controlBox;
 
+  GtkWidget *patternTypeComboBox;
+
   GtkWidget *dimensionBox;
 
   GtkWidget *widthLabel;
@@ -1032,12 +1108,33 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   GtkWidget *wireframeWidthLabel;
   GtkWidget *wireframeWidthSlider;
 
+  //////////////////////////////////////////////////////////////
+
+  GtkWidget *uniqueControlStack;
+
+  //////////////////////////////////////////////////////////////
+
+  GtkWidget *pattern01Box;
+
+  //  GtkWidget *leanCheckButton;
+  //  GtkWidget *leanLabel;
+  //  GtkWidget *leanControlSlider;
+
+  GtkWidget *offsetDirectionLabel;
+  GtkWidget *offsetDirectionComboBox;
+
   GtkWidget *offsetTypeLabel;
   GtkWidget *offsetTypeComboBox;
+
   GtkWidget *offsetControlTypeLabel;
   GtkWidget *offsetControlTypeComboBox;
+
   GtkWidget *offsetControlLabel;
   GtkWidget *offsetControlSlider;
+
+  //////////////////////////////////////////////////////////////
+
+  //////////////////////////////////////////////////////////////
 
   GtkWidget *colorSeedLabel;
   GtkWidget *colorSeedSlider;
@@ -1064,7 +1161,6 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   GtkWidget *renderPathInfoLabel;
   GtkWidget *renderPathInfoButton;
 
-  // GtkWidget *renderCheckBox;
   GtkWidget *renderColorCheckButton;
   GtkWidget *renderWireframeCheckButton;
 
@@ -1084,18 +1180,40 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
                                  GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 
   gtk_widget_set_vexpand(scrollWindow, TRUE);
-  // gtk_widget_set_hexpand(scrollWindow, TRUE);
 
   gtk_container_add(container, scrollWindow);
 
   controlBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, BOX_SPACE);
   gtk_container_add(GTK_CONTAINER(scrollWindow), controlBox);
 
-  // gtk_widget_set_margin_start(controlBox, 30);
   gtk_widget_set_margin_end(controlBox, SCROLLBAR_MARGIN);
 
-  // gtk_container_add(container, controlBox);
   control->controlBox = controlBox;
+
+  ///////////////////////////////////////////////////////////////////////
+
+  gchar *pattern01 = "Pattern01";
+  gchar *pattern02 = "Pattern02";
+  gchar *pattern03 = "Pattern03";
+
+  patternTypeComboBox = gtk_combo_box_text_new();
+  gtk_widget_set_size_request(patternTypeComboBox, CONTROL_BOX_WIDTH, 35);
+  gtk_container_add(GTK_CONTAINER(controlBox), patternTypeComboBox);
+
+  control->patternTypeComboBox = patternTypeComboBox;
+
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(patternTypeComboBox),
+                                 pattern01);
+
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(patternTypeComboBox),
+                                 pattern02);
+
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(patternTypeComboBox),
+                                 pattern03);
+
+  ///////////////////////////////////////////////////////////////////////
+
+  gtk_combo_box_set_active(GTK_COMBO_BOX(patternTypeComboBox), 0);
 
   addSeparator(GTK_CONTAINER(controlBox), GTK_ORIENTATION_HORIZONTAL,
                CONTROL_BOX_WIDTH, SEPARATOR_WIDTH);
@@ -1139,12 +1257,60 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   addSeparator(GTK_CONTAINER(controlBox), GTK_ORIENTATION_HORIZONTAL,
                CONTROL_BOX_WIDTH, SEPARATOR_WIDTH);
 
+  ///////////////////////////////////////////////////////////////////////
+
+  uniqueControlStack = gtk_stack_new();
+  gtk_container_add(GTK_CONTAINER(controlBox), uniqueControlStack);
+
+  ///////////////////////////////////////////////////////////////////////
+
+  pattern01Box = gtk_box_new(GTK_ORIENTATION_VERTICAL, BOX_SPACE);
+  gtk_stack_add_named(GTK_STACK(uniqueControlStack), pattern01Box, pattern01);
+
+  //  leanCheckButton = gtk_check_button_new_with_label(" Rectangle Lean");
+  //  gtk_container_add(GTK_CONTAINER(pattern01Box), leanCheckButton);
+  //
+  //  control->leanCheckButton = leanCheckButton;
+  //
+  //  leanLabel = gtk_label_new("Rectangle Lean Degree: ");
+  //  gtk_container_add(GTK_CONTAINER(pattern01Box), leanLabel);
+  //
+  //  leanControlSlider =
+  //      gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1.0f, 180.0f,
+  //      1.0f);
+  //  gtk_scale_set_digits(GTK_SCALE(offsetControlSlider), 0);
+  //
+  //  control->leanControlSlider = leanControlSlider;
+  //
+  //  gtk_range_set_value(GTK_RANGE(leanControlSlider), 90.0f);
+  //
+  //  gtk_container_add(GTK_CONTAINER(pattern01Box), leanControlSlider);
+  //
+  //  addSeparator(GTK_CONTAINER(pattern01Box), GTK_ORIENTATION_HORIZONTAL,
+  //               CONTROL_BOX_WIDTH, SEPARATOR_WIDTH);
+
+  offsetDirectionLabel = gtk_label_new("Offset Direction: ");
+  gtk_widget_set_halign(offsetDirectionLabel, GTK_ALIGN_START);
+  gtk_container_add(GTK_CONTAINER(pattern01Box), offsetDirectionLabel);
+
+  offsetDirectionComboBox = gtk_combo_box_text_new();
+  gtk_container_add(GTK_CONTAINER(pattern01Box), offsetDirectionComboBox);
+
+  control->offsetDirectionComboBox = offsetDirectionComboBox;
+
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(offsetDirectionComboBox),
+                                 "Horizontal");
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(offsetDirectionComboBox),
+                                 "Vertical");
+
+  gtk_combo_box_set_active(GTK_COMBO_BOX(offsetDirectionComboBox), 0);
+
   offsetTypeLabel = gtk_label_new("Offset Type: ");
   gtk_widget_set_halign(offsetTypeLabel, GTK_ALIGN_START);
-  gtk_container_add(GTK_CONTAINER(controlBox), offsetTypeLabel);
+  gtk_container_add(GTK_CONTAINER(pattern01Box), offsetTypeLabel);
 
   offsetTypeComboBox = gtk_combo_box_text_new();
-  gtk_container_add(GTK_CONTAINER(controlBox), offsetTypeComboBox);
+  gtk_container_add(GTK_CONTAINER(pattern01Box), offsetTypeComboBox);
 
   control->offsetTypeComboBox = offsetTypeComboBox;
 
@@ -1159,12 +1325,12 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
 
   offsetControlTypeLabel = gtk_label_new("Offset Control Type: ");
   gtk_widget_set_halign(offsetControlTypeLabel, GTK_ALIGN_START);
-  gtk_container_add(GTK_CONTAINER(controlBox), offsetControlTypeLabel);
+  gtk_container_add(GTK_CONTAINER(pattern01Box), offsetControlTypeLabel);
 
   control->offsetControlTypeLabel = offsetControlTypeLabel;
 
   offsetControlTypeComboBox = gtk_combo_box_text_new();
-  gtk_container_add(GTK_CONTAINER(controlBox), offsetControlTypeComboBox);
+  gtk_container_add(GTK_CONTAINER(pattern01Box), offsetControlTypeComboBox);
 
   control->offsetControlTypeComboBox = offsetControlTypeComboBox;
 
@@ -1178,12 +1344,9 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
 
   offsetControlLabel = gtk_label_new("Offset Control: ");
   gtk_widget_set_halign(offsetControlLabel, GTK_ALIGN_START);
-  gtk_container_add(GTK_CONTAINER(controlBox), offsetControlLabel);
+  gtk_container_add(GTK_CONTAINER(pattern01Box), offsetControlLabel);
 
   control->offsetControlLabel = offsetControlLabel;
-
-  // offsetControlSlider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,
-  //                                               -1.0f, 1.0f, 0.000001f);
 
   offsetControlSlider =
       gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1.0f, 7.0f, 1.0f);
@@ -1191,10 +1354,11 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
 
   control->offsetControlSlider = offsetControlSlider;
 
-  // gtk_range_set_value(GTK_RANGE(offsetControlSlider), 0.0f);
   gtk_range_set_value(GTK_RANGE(offsetControlSlider), 1.0f);
 
-  gtk_container_add(GTK_CONTAINER(controlBox), offsetControlSlider);
+  gtk_container_add(GTK_CONTAINER(pattern01Box), offsetControlSlider);
+
+  ///////////////////////////////////////////////////////////////////////
 
   addSeparator(GTK_CONTAINER(controlBox), GTK_ORIENTATION_HORIZONTAL,
                CONTROL_BOX_WIDTH, SEPARATOR_WIDTH);
@@ -1221,7 +1385,7 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
 
   wireframeWidthSlider =
       gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1.0f, 5.0f, 1.0f);
-  // gtk_scale_set_digits(GTK_SCALE(wireframeWidthSlider), 1);
+
   gtk_range_set_value(GTK_RANGE(wireframeWidthSlider), 1.0f);
 
   control->wireframeWidthSlider = wireframeWidthSlider;
@@ -1378,6 +1542,9 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
 
   // signal connection
 
+  g_signal_connect(patternTypeComboBox, "changed",
+                   G_CALLBACK(patternTypeChanged), control);
+
   g_signal_connect(widthEntryBuffer, "inserted-text",
                    G_CALLBACK(entryBufferInserted), control);
 
@@ -1392,6 +1559,9 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
 
   g_signal_connect(offsetTypeComboBox, "changed", G_CALLBACK(offsetTypeChanged),
                    control);
+
+  g_signal_connect(offsetDirectionComboBox, "changed",
+                   G_CALLBACK(offsetDirectionChanged), control);
 
   g_signal_connect(offsetControlTypeComboBox, "changed",
                    G_CALLBACK(offsetControlTypeChanged), control);
@@ -1438,7 +1608,6 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   g_signal_connect(renderButton, "clicked", G_CALLBACK(renderButtonClicked),
                    control);
 
-  // gtk_widget_show_all(controlBox);
   gtk_widget_show_all(scrollWindow);
 
   return control;
@@ -1446,7 +1615,6 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
 
 static gboolean glRender(GtkGLArea *area, GdkGLContext *context,
                          void *userData) {
-  // struct PatternData *user = (struct PatternData *)userData;
   struct ControlData *control = (struct ControlData *)userData;
   struct PatternData *user = control->patternData;
 
@@ -1480,32 +1648,27 @@ static gboolean glRender(GtkGLArea *area, GdkGLContext *context,
       user->wireframeDraw = 1;
       glBindVertexArray(user->pattern->vao);
       glUniform1i(user->wireframeDrawUniformLoc, user->wireframeDraw);
-      // glDrawArrays(GL_LINES, 0, user->pattern->vertexCounts);
-      glDrawArrays(GL_LINES, 0, user->pattern->numUnits * 8);
+      glDrawArrays(GL_LINES, 0, user->pattern->wireframeVertexCounts);
 
       if (user->pattern->seamlessModel != NULL) {
         glBindVertexArray(user->pattern->seamlessModel->vao);
         glUniform1i(user->wireframeDrawUniformLoc, user->wireframeDraw);
-        // glDrawArrays(GL_LINES, 0,
-        // user->pattern->seamlessModel->vertexCounts);
-        glDrawArrays(GL_LINES, 0, user->pattern->seamlessModel->numUnits * 8);
+        glDrawArrays(GL_LINES, 0,
+                     user->pattern->seamlessModel->wireframeVertexCounts);
       }
     }
   }
-
-  // drawing wireframe
-  // glDrawArrays(GL_LINES, 0, user->pattern->vertexCounts);
 
   glFlush();
   return TRUE;
 }
 
-static void *initPatternControl(GtkWindow *mainWindow, GtkContainer *container,
-                                GtkGLArea *glArea, GLuint shaderProgram) {
+void *initPatternControl(GtkWindow *mainWindow, GtkContainer *container,
+                         GtkGLArea *glArea, GLuint shaderProgram) {
   gtk_gl_area_make_current(glArea);
 
-  // struct PatternModel *pattern = patternModelNew(glArea, 50, 50, 1);
-  void *user = (void *)patternDataNew(glArea, shaderProgram, NULL);
+  struct PatternModel *pattern = patternModelNew(glArea, 50, 50, 1, 0);
+  void *user = (void *)patternDataNew(glArea, shaderProgram, pattern);
   struct ControlData *control = initControl(mainWindow, container, user);
 
   g_signal_connect(glArea, "render", G_CALLBACK(glRender), control);
@@ -1517,36 +1680,36 @@ static void *initPatternControl(GtkWindow *mainWindow, GtkContainer *container,
   return (void *)control;
 }
 
-static void constructPatternModel(void *control) {
-  struct ControlData *userControl = (struct ControlData *)control;
-  struct PatternData *user = userControl->patternData;
-
-  struct PatternModel *pattern = patternModelNew(user->glArea, 50, 50, 1);
-
-  user->pattern = pattern;
-  gtk_gl_area_queue_render(user->glArea);
-}
-
-static void freePatternModel(void *control) {
-  struct ControlData *userControl = (struct ControlData *)control;
-  struct PatternData *user = userControl->patternData;
-  patternModelFree(user->pattern);
-
-  user->pattern = NULL;
-  gtk_gl_area_queue_render(user->glArea);
-}
-
-struct PatternAlpha {
-  void *(*initPatternControl)(GtkWindow *mainWindow, GtkContainer *container,
-                              GtkGLArea *glArea, GLuint shaderProgram);
-  // void (*freePattern)(void *control);
-  void (*constructPatternModel)(void *control);
-  void (*freePatternModel)(void *control);
-
-  void *patternControl;
-
-  const char *patternName;
-};
+// static void constructPatternModel(void *control) {
+//  struct ControlData *userControl = (struct ControlData *)control;
+//  struct PatternData *user = userControl->patternData;
+//
+//  struct PatternModel *pattern = patternModelNew(user->glArea, 50, 50, 1);
+//
+//  user->pattern = pattern;
+//  gtk_gl_area_queue_render(user->glArea);
+//}
+//
+// static void freePatternModel(void *control) {
+//  struct ControlData *userControl = (struct ControlData *)control;
+//  struct PatternData *user = userControl->patternData;
+//  patternModelFree(user->pattern);
+//
+//  user->pattern = NULL;
+//  gtk_gl_area_queue_render(user->glArea);
+//}
+//
+// struct PatternAlpha {
+//  void *(*initPatternControl)(GtkWindow *mainWindow, GtkContainer *container,
+//                              GtkGLArea *glArea, GLuint shaderProgram);
+//  // void (*freePattern)(void *control);
+//  void (*constructPatternModel)(void *control);
+//  void (*freePatternModel)(void *control);
+//
+//  void *patternControl;
+//
+//  const char *patternName;
+//};
 
 // static void controlDataFree(struct ControlData *data) {
 //  // Gtk use reference counting to automatically clean up the resourse
@@ -1585,16 +1748,16 @@ struct PatternAlpha {
 //  free(fr);
 //}
 
-void *patternAlphaNew(const char *patternName) {
-  struct PatternAlpha *re =
-      (struct PatternAlpha *)defenseMalloc(sizeof(struct PatternAlpha));
-  re->initPatternControl = initPatternControl;
-  re->constructPatternModel = constructPatternModel;
-  re->freePatternModel = freePatternModel;
-
-  re->patternControl = NULL;
-
-  re->patternName = patternName;
-
-  return (void *)re;
-}
+// void *patternAlphaNew(const char *patternName) {
+//  struct PatternAlpha *re =
+//      (struct PatternAlpha *)defenseMalloc(sizeof(struct PatternAlpha));
+//  re->initPatternControl = initPatternControl;
+//  re->constructPatternModel = constructPatternModel;
+//  re->freePatternModel = freePatternModel;
+//
+//  re->patternControl = NULL;
+//
+//  re->patternName = patternName;
+//
+//  return (void *)re;
+//}
