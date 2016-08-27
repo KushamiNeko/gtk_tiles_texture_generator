@@ -40,27 +40,27 @@ struct PatternModel {
   struct PatternModel *seamlessModel;
 };
 
-extern void patternModelRandomizeUV(struct PatternModel *pattern);
+void patternModelRandomizeUV(struct PatternModel *pattern);
 
-extern void patternModelScaleUV(struct PatternModel *pattern,
-                                double scaleFactor);
+void patternModelScaleUV(struct PatternModel *pattern,
+                         double scaleFactor);
 
-extern void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
-                                               GtkGLArea *glArea);
-extern void patternModelInitUnitsPosition(struct PatternModel *pattern);
+void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
+                                        GtkGLArea *glArea);
+void patternModelInitUnitsPosition(struct PatternModel *pattern);
 
-extern void patternModelFitColor(struct PatternModel *pattern, float min,
-                                 float max);
-extern void patternModelRandomizeColor(struct PatternModel *pattern);
+void patternModelFitColor(struct PatternModel *pattern, float min,
+                          float max);
+void patternModelRandomizeColor(struct PatternModel *pattern);
 
-extern void patternModelRandomizeUVRotate(struct PatternModel *pattern);
+void patternModelRandomizeUVRotate(struct PatternModel *pattern);
 
-extern struct PatternModel *patternModelNew(GtkGLArea *glArea,
-                                            const unsigned int sizeX,
-                                            const unsigned int sizeY,
-                                            const unsigned int cpy,
-                                            const unsigned int patternIndex);
+struct PatternModel *patternModelNew(GtkGLArea *glArea,
+                                     const unsigned int sizeX,
+                                     const unsigned int sizeY,
+                                     const unsigned int cpy,
+                                     const unsigned int patternIndex);
 
-extern void patternModelFree(struct PatternModel *pattern);
+void patternModelFree(struct PatternModel *pattern);
 
 #endif

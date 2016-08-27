@@ -14,8 +14,6 @@
 #include "../../general/src/gl_helper.h"
 #include "pattern_model.h"
 
-// extern void *patternAlphaNew(const char *patternName);
-
-extern void *initPatternControl(GtkWindow *mainWindow, GtkContainer *container,
+void *initPatternControl(GtkWindow *mainWindow, GtkContainer *container,
                                 GtkGLArea *glArea, GLuint shaderProgram);
 #endif

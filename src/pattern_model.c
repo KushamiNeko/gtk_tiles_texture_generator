@@ -1,10 +1,7 @@
 #include "pattern_model.h"
 
 #ifdef UNIT_TESTING
-#define __malloc malloc
 #include <cmockery/cmockery_override.h>
-#else
-#define __malloc defenseMalloc
 #endif
 
 static inline void genRectRandUV(struct Rectangle *rect) {
@@ -14,7 +11,7 @@ static inline void genRectRandUV(struct Rectangle *rect) {
   amountX = (amountX * 2.0f) - 1.0f;
   amountY = (amountY * 2.0f) - 1.0f;
 
-  rectangleInitUVScale(rect);
+  // rectangleInitUVProject(rect);
   rectangleMoveUV(rect, amountX, amountY);
 }
 
@@ -127,31 +124,31 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
 
   pattern->numUnits = pattern->numWidth * pattern->numHeight;
 
-  while (1) {
-    int reuse = 0;
-    for (int i = 0; i < pattern->numUnits; i++) {
-      struct Rectangle *rect = pattern->units[i];
-
-      // reuse original unit
-      if (rect->position[rect->xMin][0] >= 1.0f) {
-        rectangleMove(rect, -__GL_VIEWPORT, 0);
-      } else if (rect->position[rect->xMax][0] <= -1.0f) {
-        rectangleMove(rect, __GL_VIEWPORT, 0);
-      } else if (rect->position[rect->yMin][1] >= 1.0f) {
-        rectangleMove(rect, 0, -__GL_VIEWPORT);
-      } else if (rect->position[rect->yMax][1] <= -1.0f) {
-        rectangleMove(rect, 0, __GL_VIEWPORT);
-      } else {
-        continue;
-      }
-
-      reuse++;
-    }
-
-    if (reuse == 0) {
-      break;
-    }
-  }
+  //  while (1) {
+  //    int reuse = 0;
+  //    for (int i = 0; i < pattern->numUnits; i++) {
+  //      struct Rectangle *rect = pattern->units[i];
+  //
+  //      // reuse original unit
+  //      if (rect->position[rect->xMin][0] >= 1.0f) {
+  //        rectangleMove(rect, -__GL_VIEWPORT, 0);
+  //      } else if (rect->position[rect->xMax][0] <= -1.0f) {
+  //        rectangleMove(rect, __GL_VIEWPORT, 0);
+  //      } else if (rect->position[rect->yMin][1] >= 1.0f) {
+  //        rectangleMove(rect, 0, -__GL_VIEWPORT);
+  //      } else if (rect->position[rect->yMax][1] <= -1.0f) {
+  //        rectangleMove(rect, 0, __GL_VIEWPORT);
+  //      } else {
+  //        continue;
+  //      }
+  //
+  //      reuse++;
+  //    }
+  //
+  //    if (reuse == 0) {
+  //      break;
+  //    }
+  //  }
 
   patternModelInitPos(pattern);
 
@@ -187,7 +184,8 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
   // g_print("num new: %d\n", numNew);
 
   if (numNew != 0) {
-    struct PatternModel *re = defenseMalloc(sizeof(struct PatternModel));
+    struct PatternModel *re =
+        defenseMalloc(sizeof(struct PatternModel), mallocFailAbort, NULL);
 
     re->sizeX = pattern->sizeX;
     re->sizeY = pattern->sizeY;
@@ -199,7 +197,8 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
     GLfloat height = (GLfloat)__GL_VIEWPORT / (GLfloat)re->numHeight;
 
     re->numUnits = numNew;
-    re->units = defenseMalloc(numNew * sizeof(struct Rectangle *));
+    re->units = defenseMalloc(numNew * sizeof(struct Rectangle *),
+                              mallocFailAbort, NULL);
 
     unsigned int newIndex = 0;
     for (int i = 0; i < pattern->numUnits; i++) {
@@ -248,15 +247,20 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
     re->wireframeVertexCounts =
         re->numUnits * (*re->units)->wireframeVertexCounts;
 
-    re->vertexPosition = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat));
-    re->vertexUV = defenseMalloc(re->vertexCounts * 2 * sizeof(GLfloat));
-    re->vertexColor = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat));
+    re->vertexPosition = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat),
+                                       mallocFailAbort, NULL);
+    re->vertexUV = defenseMalloc(re->vertexCounts * 2 * sizeof(GLfloat),
+                                 mallocFailAbort, NULL);
+    re->vertexColor = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat),
+                                    mallocFailAbort, NULL);
 
-    re->vertexWireframe =
-        defenseMalloc(re->wireframeVertexCounts * 3 * sizeof(GLfloat));
+    re->vertexWireframe = defenseMalloc(
+        re->wireframeVertexCounts * 3 * sizeof(GLfloat), mallocFailAbort, NULL);
+
+    memcpy(re->vertexColor, pattern->vertexColor,
+           re->vertexCounts * 3 * sizeof(GLfloat));
 
     patternModelInitPos(re);
-    patternModelInitColor(re);
     patternModelInitUV(re);
 
     gtk_gl_area_make_current(glArea);
@@ -302,12 +306,12 @@ void patternModelInitUnitsPosition(struct PatternModel *pattern) {
   patternModelInitPos(pattern);
 }
 
-/////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 static void modelGenerate01(struct PatternModel *pattern) {
   pattern->numUnits = pattern->numWidth * pattern->numHeight;
-  pattern->units =
-      defenseMalloc(pattern->numUnits * sizeof(struct Rectangle *));
+  pattern->units = defenseMalloc(pattern->numUnits * sizeof(struct Rectangle *),
+                                 mallocFailAbort, NULL);
 
   double width = (GLfloat)__GL_VIEWPORT / (GLfloat)pattern->numWidth;
   double height = (GLfloat)__GL_VIEWPORT / (GLfloat)pattern->numHeight;
@@ -333,15 +337,16 @@ static void modelGenerate01(struct PatternModel *pattern) {
   pattern->wireframeVertexCounts =
       pattern->numUnits * (*pattern->units)->wireframeVertexCounts;
 
-  pattern->vertexPosition =
-      defenseMalloc(pattern->vertexCounts * 3 * sizeof(GLfloat));
-  pattern->vertexUV =
-      defenseMalloc(pattern->vertexCounts * 2 * sizeof(GLfloat));
-  pattern->vertexColor =
-      defenseMalloc(pattern->vertexCounts * 3 * sizeof(GLfloat));
+  pattern->vertexPosition = defenseMalloc(
+      pattern->vertexCounts * 3 * sizeof(GLfloat), mallocFailAbort, NULL);
+  pattern->vertexUV = defenseMalloc(pattern->vertexCounts * 2 * sizeof(GLfloat),
+                                    mallocFailAbort, NULL);
+  pattern->vertexColor = defenseMalloc(
+      pattern->vertexCounts * 3 * sizeof(GLfloat), mallocFailAbort, NULL);
 
   pattern->vertexWireframe =
-      defenseMalloc(pattern->wireframeVertexCounts * 3 * sizeof(GLfloat));
+      defenseMalloc(pattern->wireframeVertexCounts * 3 * sizeof(GLfloat),
+                    mallocFailAbort, NULL);
 
   // patternModelInitPos(pattern);
   // patternModelInitColor(pattern);
@@ -360,12 +365,24 @@ static void modelGenerate02(struct PatternModel *pattern) {
 
       if (w % 2 == 0) {
         rectangleMoveEdge(rect, 0, 3, 0.0f, -moveAmount);
+        rectangleRotateUV(rect, 45.0f);
       } else {
         rectangleMoveEdge(rect, 1, 2, 0.0f, -moveAmount);
+        rectangleRotateUV(rect, -45.0f);
       }
     }
   }
 }
+
+// static void modelUVConstruct01(struct PatternModel *pattern) {
+//  // rectangleInitUVProject(rect);
+//}
+//
+// static void modelUVConstruct02(struct PatternModel *pattern) {
+//  // rectangleInitUVProject(rect);
+//}
+
+///////////////////////////////////////////////////////////////////////////
 
 static void getDimensionNumber01(struct PatternModel *pattern,
                                  const unsigned int cpy) {
@@ -401,18 +418,21 @@ static void getDimensionNumber02(struct PatternModel *pattern,
   // g_print("num height: %d\n", pattern->numHeight);
 }
 
+///////////////////////////////////////////////////////////////////////////
+
 typedef void dimensionFunc(struct PatternModel *pattern,
                            const unsigned int cpy);
 typedef void generateFunc(struct PatternModel *pattern);
 
-/////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 
 struct PatternModel *patternModelNew(GtkGLArea *glArea,
                                      const unsigned int sizeX,
                                      const unsigned int sizeY,
                                      const unsigned int cpy,
                                      const unsigned int patternIndex) {
-  struct PatternModel *pattern = defenseMalloc(sizeof(struct PatternModel));
+  struct PatternModel *pattern =
+      defenseMalloc(sizeof(struct PatternModel), mallocFailAbort, NULL);
 
   pattern->sizeX = sizeX;
   pattern->sizeY = sizeY;

@@ -1,5 +1,9 @@
 #include "pattern_control.h"
 
+#ifdef UNIT_TESTING
+#include <cmockery/cmockery_override.h>
+#endif
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../../third_party/stb/stb_image_write.h"
 
@@ -37,8 +41,8 @@ static gboolean patternDataInitTexMap(struct PatternData *patternData) {
 static struct PatternData *patternDataNew(GtkGLArea *glArea,
                                           GLuint shaderProgram,
                                           struct PatternModel *pattern) {
-  struct PatternData *re =
-      (struct PatternData *)defenseMalloc(sizeof(struct PatternData));
+  struct PatternData *re = (struct PatternData *)defenseMalloc(
+      sizeof(struct PatternData), mallocFailAbort, NULL);
 
   re->glArea = glArea;
 
@@ -72,7 +76,8 @@ static struct PatternData *patternDataNew(GtkGLArea *glArea,
   re->wireframeColorUniformLoc =
       glGetUniformLocation(shaderProgram, "wireframeColor");
 
-  re->wireframeColor = defenseMalloc(3 * sizeof(GLfloat));
+  re->wireframeColor =
+      defenseMalloc(3 * sizeof(GLfloat), mallocFailAbort, NULL);
   re->wireframeColor[0] = 1.0f;
   re->wireframeColor[1] = 1.0f;
   re->wireframeColor[2] = 1.0f;
@@ -105,9 +110,6 @@ struct ControlData {
   //////////////////////////////////////////////////////////////
 
   GtkWidget *offsetTypeComboBox;
-
-  //  GtkWidget *leanCheckButton;
-  //  GtkWidget *leanControlSlider;
 
   GtkWidget *offsetDirectionComboBox;
 
@@ -167,15 +169,16 @@ static void wireframeColorSet(GtkColorButton *widget, void *userData) {
   gtk_gl_area_queue_render(user->glArea);
 }
 
-static void fitSeamlessModelColor(struct PatternModel *pattern, double colorMin,
-                                  double colorMax) {
-  if (pattern->seamlessModel) {
-    patternModelFitColor(pattern->seamlessModel, colorMin, colorMax);
-    setVBOData(&pattern->seamlessModel->colorVBO,
-               pattern->seamlessModel->vertexCounts, 3,
-               pattern->seamlessModel->vertexColor);
-  }
-}
+// static void fitSeamlessModelColor(struct PatternModel *pattern, double
+// colorMin,
+//                                  double colorMax) {
+//  if (pattern->seamlessModel) {
+//    // patternModelFitColor(pattern->seamlessModel, colorMin, colorMax);
+//    setVBOData(&pattern->seamlessModel->colorVBO,
+//               pattern->seamlessModel->vertexCounts, 3,
+//               pattern->seamlessModel->vertexColor);
+//  }
+//}
 
 static void colorSeedChanged(GtkRange *range, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
@@ -187,15 +190,19 @@ static void colorSeedChanged(GtkRange *range, void *userData) {
   // re-construct the color of whole pattern units
   patternModelRandomizeColor(user->pattern);
 
-  patternModelSeamlessModelConstruct(user->pattern, user->glArea);
-
   patternModelFitColor(user->pattern, colorMin, colorMax);
 
   // directly update the specific memory allocated for the data
   setVBOData(&user->pattern->colorVBO, user->pattern->vertexCounts, 3,
              user->pattern->vertexColor);
 
-  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  patternModelSeamlessModelConstruct(user->pattern, user->glArea);
+
+  // setVBOData(&user->pattern->seamlessModel->colorVBO,
+  //           user->pattern->seamlessModel->vertexCounts, 3,
+  //           user->pattern->seamlessModel->vertexColor);
+
+  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
@@ -242,7 +249,11 @@ static void randUVSeedChanged(GtkRange *range, void *userData) {
   setVBOData(&user->pattern->uvVBO, user->pattern->vertexCounts, 2,
              user->pattern->vertexUV);
 
-  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  // setVBOData(&user->pattern->seamlessModel->colorVBO,
+  //           user->pattern->seamlessModel->vertexCounts, 3,
+  //           user->pattern->seamlessModel->vertexColor);
+
+  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   gtk_gl_area_queue_render(user->glArea);
 }
@@ -264,7 +275,11 @@ static void uvScaleChanged(GtkRange *range, void *userData) {
   setVBOData(&user->pattern->uvVBO, user->pattern->vertexCounts, 2,
              user->pattern->vertexUV);
 
-  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  // setVBOData(&user->pattern->seamlessModel->colorVBO,
+  //           user->pattern->seamlessModel->vertexCounts, 3,
+  //           user->pattern->seamlessModel->vertexColor);
+
+  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   gtk_gl_area_queue_render(user->glArea);
 }
@@ -285,11 +300,32 @@ static void uvRotateToggled(GtkToggleButton *toggleButton, void *userData) {
 
   gboolean active = gtk_toggle_button_get_active(toggleButton);
 
-  patternModelRandomizeUV(user->pattern);
-
   if (active) {
     patternModelRandomizeUVRotate(user->pattern);
+  } else {
+    guint patternType =
+        gtk_combo_box_get_active(GTK_COMBO_BOX(control->patternTypeComboBox));
+
+    for (int h = 0; h < user->pattern->numHeight; h++) {
+      for (int w = 0; w < user->pattern->numWidth; w++) {
+        struct Rectangle *rect =
+            user->pattern->units[(h * user->pattern->numWidth) + w];
+
+        // rectangleInitUVProject(user->pattern->units[i]);
+        rectangleInitUVProject(rect);
+
+        if (patternType == 1) {
+          if (w % 2 == 0) {
+            rectangleRotateUV(rect, 45.0f);
+          } else {
+            rectangleRotateUV(rect, -45.0f);
+          }
+        }
+      }
+    }
   }
+
+  patternModelRandomizeUV(user->pattern);
 
   uvScaleChanged(GTK_RANGE(control->uvScaleSlider), userData);
 
@@ -447,7 +483,11 @@ static void offsetControlChanged(GtkRange *range, void *userData) {
   setVBOData(&user->pattern->wireframeVBO, user->pattern->wireframeVertexCounts,
              3, user->pattern->vertexWireframe);
 
-  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  // setVBOData(&user->pattern->seamlessModel->colorVBO,
+  //           user->pattern->seamlessModel->vertexCounts, 3,
+  //           user->pattern->seamlessModel->vertexColor);
+
+  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
@@ -580,8 +620,8 @@ static void numCpyChanged(GtkRange *range, void *userData) {
   patternModelFree(user->pattern);
   user->pattern = pattern;
 
-  double width = (GLfloat)__GL_VIEWPORT / user->pattern->numWidth;
-  double height = (GLfloat)__GL_VIEWPORT / user->pattern->numHeight;
+  double width = (double)__GL_VIEWPORT / (double)user->pattern->numWidth;
+  double height = (double)__GL_VIEWPORT / (double)user->pattern->numHeight;
   double offset = gtk_range_get_value(GTK_RANGE(control->offsetControlSlider));
 
   gint offsetType =
@@ -591,12 +631,6 @@ static void numCpyChanged(GtkRange *range, void *userData) {
 
   gint offsetControlType = gtk_combo_box_get_active(
       GTK_COMBO_BOX(control->offsetControlTypeComboBox));
-
-  // if (offsetControlType == 0) {
-  //  offsetAmount = width / offset;
-  //} else if (offsetControlType == 1) {
-  //  offsetAmount = width * offset;
-  //}
 
   gint direction =
       gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetDirectionComboBox));
@@ -652,7 +686,11 @@ static void numCpyChanged(GtkRange *range, void *userData) {
   setVBOData(&user->pattern->uvVBO, user->pattern->vertexCounts, 2,
              user->pattern->vertexUV);
 
-  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  // setVBOData(&user->pattern->seamlessModel->colorVBO,
+  //           user->pattern->seamlessModel->vertexCounts, 3,
+  //           user->pattern->seamlessModel->vertexColor);
+
+  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
@@ -662,11 +700,13 @@ static void patternTypeChanged(GtkComboBox *widget, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
   struct PatternData *user = control->patternData;
 
-  guint patternType = gtk_combo_box_get_active(GTK_COMBO_BOX(control->patternTypeComboBox));
+  guint patternType =
+      gtk_combo_box_get_active(GTK_COMBO_BOX(control->patternTypeComboBox));
 
   if (patternType == 0) {
-      gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetDirectionComboBox), 0);
-      gtk_widget_set_sensitive(control->offsetDirectionComboBox, TRUE);
+    gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetDirectionComboBox),
+                             0);
+    gtk_widget_set_sensitive(control->offsetDirectionComboBox, TRUE);
   } else if (patternType == 1) {
     gtk_combo_box_set_active(GTK_COMBO_BOX(control->offsetDirectionComboBox),
                              1);
@@ -686,10 +726,16 @@ static void colorRangeChanged(GtkRange *range, void *userData) {
   // only re-generate GL color data and fit it into new range
   patternModelFitColor(user->pattern, colorMin, colorMax);
 
+  patternModelSeamlessModelConstruct(user->pattern, user->glArea);
+
   setVBOData(&user->pattern->colorVBO, user->pattern->vertexCounts, 3,
              user->pattern->vertexColor);
 
-  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  // setVBOData(&user->pattern->seamlessModel->colorVBO,
+  //           user->pattern->seamlessModel->vertexCounts, 3,
+  //           user->pattern->seamlessModel->vertexColor);
+
+  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
@@ -1004,7 +1050,8 @@ static void renderButtonClicked(GtkButton *button, void *userData) {
                      user->pattern->seamlessModel->vertexCounts);
       }
 
-      colorImage = (unsigned char *)defenseMalloc(renderSize * renderSize * 3);
+      colorImage = (unsigned char *)defenseMalloc(renderSize * renderSize * 3,
+                                                  mallocFailAbort, NULL);
 
       glBindFramebuffer(GL_FRAMEBUFFER, fb);
       glReadPixels(0, 0, renderSize, renderSize, GL_RGB, GL_UNSIGNED_BYTE,
@@ -1028,8 +1075,8 @@ static void renderButtonClicked(GtkButton *button, void *userData) {
                      user->pattern->seamlessModel->wireframeVertexCounts);
       }
 
-      wireframeImage =
-          (unsigned char *)defenseMalloc(renderSize * renderSize * 3);
+      wireframeImage = (unsigned char *)defenseMalloc(
+          renderSize * renderSize * 3, mallocFailAbort, NULL);
 
       glBindFramebuffer(GL_FRAMEBUFFER, fb);
       glReadPixels(0, 0, renderSize, renderSize, GL_RGB, GL_UNSIGNED_BYTE,
@@ -1075,7 +1122,8 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   srand(time(NULL));
 
   // alloc memory for controlData used by signal function
-  struct ControlData *control = defenseMalloc(sizeof(struct ControlData));
+  struct ControlData *control =
+      defenseMalloc(sizeof(struct ControlData), mallocFailAbort, NULL);
 
   control->patternData = (struct PatternData *)user;
 
