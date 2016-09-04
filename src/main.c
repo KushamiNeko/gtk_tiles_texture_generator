@@ -75,7 +75,8 @@ static void glRealize(GtkGLArea *area) {
 
   if (gtk_gl_area_get_error(area) != NULL) {
     g_print("GL Area initialization failed!\n");
-    return;
+    // return;
+    exit(EXIT_FAILURE);
   }
 
   // enable depth testing
@@ -200,8 +201,8 @@ static void activate() {
 
   gtk_widget_show_all(GTK_WIDGET(mainWindow));
 
-    GLuint mainShaderProgram =
-        constructShaderProgram(VERTEX_SHADER, FRAGMENT_SHADER);
+  GLuint mainShaderProgram =
+      constructShaderProgram(VERTEX_SHADER, FRAGMENT_SHADER);
 
   initPatternControl(GTK_WINDOW(mainWindow), GTK_CONTAINER(controlerBox),
                      GTK_GL_AREA(mainGL), mainShaderProgram);

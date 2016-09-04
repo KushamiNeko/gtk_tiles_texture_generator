@@ -5,9 +5,5 @@ pkg
 *.jpg
 src/third_party
 tag
-TAGS
+*.xml
 .clang_complete
-<<<<<<< HEAD
-=======
-*.*~
->>>>>>> refactoring_second_attemp

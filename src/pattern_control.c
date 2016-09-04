@@ -169,16 +169,16 @@ static void wireframeColorSet(GtkColorButton *widget, void *userData) {
   gtk_gl_area_queue_render(user->glArea);
 }
 
-// static void fitSeamlessModelColor(struct PatternModel *pattern, double
-// colorMin,
-//                                  double colorMax) {
-//  if (pattern->seamlessModel) {
-//    // patternModelFitColor(pattern->seamlessModel, colorMin, colorMax);
-//    setVBOData(&pattern->seamlessModel->colorVBO,
-//               pattern->seamlessModel->vertexCounts, 3,
-//               pattern->seamlessModel->vertexColor);
-//  }
-//}
+static void fitSeamlessModelColor(struct PatternModel *pattern, double colorMin,
+                                  double colorMax) {
+  if (pattern->seamlessModel) {
+    patternModelFitColor(pattern->seamlessModel, colorMin, colorMax);
+
+    setVBOData(&pattern->seamlessModel->colorVBO,
+               pattern->seamlessModel->vertexCounts, 3,
+               pattern->seamlessModel->vertexColor);
+  }
+}
 
 static void colorSeedChanged(GtkRange *range, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
@@ -202,7 +202,7 @@ static void colorSeedChanged(GtkRange *range, void *userData) {
   //           user->pattern->seamlessModel->vertexCounts, 3,
   //           user->pattern->seamlessModel->vertexColor);
 
-  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
@@ -253,7 +253,7 @@ static void randUVSeedChanged(GtkRange *range, void *userData) {
   //           user->pattern->seamlessModel->vertexCounts, 3,
   //           user->pattern->seamlessModel->vertexColor);
 
-  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   gtk_gl_area_queue_render(user->glArea);
 }
@@ -279,7 +279,7 @@ static void uvScaleChanged(GtkRange *range, void *userData) {
   //           user->pattern->seamlessModel->vertexCounts, 3,
   //           user->pattern->seamlessModel->vertexColor);
 
-  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   gtk_gl_area_queue_render(user->glArea);
 }
@@ -351,6 +351,8 @@ static void patternOffsetModulo2(struct PatternData *user, const int direction,
                                  const GLfloat amount) {
   patternModelInitUnitsPosition(user->pattern);
 
+  // g_print("amount: %f\n", amount);
+
   for (int i = 0; i < user->pattern->numHeight; i++) {
     for (int j = 0; j < user->pattern->numWidth; j++) {
       struct Rectangle *rect =
@@ -379,6 +381,8 @@ static void patternOffsetAccumulate(struct PatternData *user,
                                     const int direction, const GLfloat amount) {
   patternModelInitUnitsPosition(user->pattern);
 
+  // g_print("amount: %f\n", amount);
+
   if (direction == 0) {
     for (int i = 0; i < user->pattern->numHeight; i++) {
       for (int j = 0; j < user->pattern->numWidth; j++) {
@@ -402,12 +406,12 @@ static void patternOffsetAccumulate(struct PatternData *user,
 
 static void patternOffsetRandom(struct PatternData *user, const int direction) {
   patternModelInitUnitsPosition(user->pattern);
-  double width = (GLfloat)__GL_VIEWPORT / user->pattern->numWidth;
+  double width = (double)__GL_VIEWPORT / (double)user->pattern->numWidth;
 
   if (direction == 0) {
     for (int i = 0; i < user->pattern->numHeight; i++) {
-      double randNum = (GLfloat)rand() / (GLfloat)RAND_MAX;
-      randNum = (randNum * 2) - 1;
+      double randNum = (double)rand() / (double)RAND_MAX;
+      randNum = (randNum - 0.5f) * 2.0f;
 
       for (int j = 0; j < user->pattern->numWidth; j++) {
         struct Rectangle *rect =
@@ -418,8 +422,8 @@ static void patternOffsetRandom(struct PatternData *user, const int direction) {
     }
   } else if (direction == 1) {
     for (int i = 0; i < user->pattern->numWidth; i++) {
-      double randNum = (GLfloat)rand() / (GLfloat)RAND_MAX;
-      randNum = (randNum * 2) - 1;
+      double randNum = (double)rand() / (double)RAND_MAX;
+      randNum = (randNum - 0.5f) * 2.0f;
 
       for (int j = 0; j < user->pattern->numHeight; j++) {
         struct Rectangle *rect =
@@ -435,8 +439,8 @@ static void offsetControlChanged(GtkRange *range, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
   struct PatternData *user = control->patternData;
 
-  double width = (GLfloat)__GL_VIEWPORT / user->pattern->numWidth;
-  double height = (GLfloat)__GL_VIEWPORT / user->pattern->numHeight;
+  double width = (double)__GL_VIEWPORT / (double)user->pattern->numWidth;
+  double height = (double)__GL_VIEWPORT / (double)user->pattern->numHeight;
   double offset = gtk_range_get_value(range);
 
   gint offsetType =
@@ -455,14 +459,18 @@ static void offsetControlChanged(GtkRange *range, void *userData) {
       offsetAmount = width / offset;
     } else if (direction == 1) {
       offsetAmount = height / offset;
+      // offsetAmount = 0;
     }
   } else if (offsetControlType == 1) {
     if (direction == 0) {
       offsetAmount = width * offset;
     } else if (direction == 1) {
+      // offsetAmount = height * offset;
       offsetAmount = height * offset;
     }
   }
+
+  // g_print("offsetAmount: %f\n", offsetAmount);
 
   if (offsetType == 0) {
     patternOffsetModulo2(user, direction, offsetAmount);
@@ -487,7 +495,7 @@ static void offsetControlChanged(GtkRange *range, void *userData) {
   //           user->pattern->seamlessModel->vertexCounts, 3,
   //           user->pattern->seamlessModel->vertexColor);
 
-  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
@@ -690,7 +698,7 @@ static void numCpyChanged(GtkRange *range, void *userData) {
   //           user->pattern->seamlessModel->vertexCounts, 3,
   //           user->pattern->seamlessModel->vertexColor);
 
-  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
@@ -699,6 +707,17 @@ static void numCpyChanged(GtkRange *range, void *userData) {
 static void patternTypeChanged(GtkComboBox *widget, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
   struct PatternData *user = control->patternData;
+
+  gtk_range_set_value(GTK_RANGE(control->numCpySlider), 1.0f);
+  gtk_range_set_value(GTK_RANGE(control->offsetControlSlider), 0.0f);
+
+  gtk_range_set_value(GTK_RANGE(control->colorMinSlider), 1.0f);
+  gtk_range_set_value(GTK_RANGE(control->colorMaxSlider), 1.0f);
+
+  gtk_range_set_value(GTK_RANGE(control->uvScaleSlider), 1.0f);
+
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(control->uvRotateCheckButton),
+                               FALSE);
 
   guint patternType =
       gtk_combo_box_get_active(GTK_COMBO_BOX(control->patternTypeComboBox));
@@ -713,7 +732,50 @@ static void patternTypeChanged(GtkComboBox *widget, void *userData) {
     gtk_widget_set_sensitive(control->offsetDirectionComboBox, FALSE);
   }
 
-  numCpyChanged(GTK_RANGE(control->numCpySlider), userData);
+  // numCpyChanged(GTK_RANGE(control->numCpySlider), userData);
+
+  double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
+  double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
+
+  // double scaleFactor = normalizeUVScaleRange(
+  //     gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)));
+
+  gint patternIndex =
+      gtk_combo_box_get_active(GTK_COMBO_BOX(control->patternTypeComboBox));
+
+  struct PatternModel *pattern =
+      patternModelNew(user->glArea, user->pattern->sizeX, user->pattern->sizeY,
+                      1, patternIndex);
+
+  patternModelFree(user->pattern);
+  user->pattern = pattern;
+
+  patternModelRandomizeUV(user->pattern);
+
+  // re-construct the color of whole pattern units
+  patternModelRandomizeColor(user->pattern);
+  patternModelFitColor(user->pattern, colorMin, colorMax);
+  //  // patternModelRandomizeUV(user->pattern);
+  //  patternModelScaleUV(user->pattern, scaleFactor);
+
+  patternModelSeamlessModelConstruct(user->pattern, user->glArea);
+
+  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+
+  setVBOData(&user->pattern->positionVBO, user->pattern->vertexCounts, 3,
+             user->pattern->vertexPosition);
+
+  setVBOData(&user->pattern->wireframeVBO, user->pattern->wireframeVertexCounts,
+             3, user->pattern->vertexWireframe);
+
+  setVBOData(&user->pattern->colorVBO, user->pattern->vertexCounts, 3,
+             user->pattern->vertexColor);
+
+  setVBOData(&user->pattern->uvVBO, user->pattern->vertexCounts, 2,
+             user->pattern->vertexUV);
+
+  // queue openGL render
+  gtk_gl_area_queue_render(user->glArea);
 }
 
 static void colorRangeChanged(GtkRange *range, void *userData) {
@@ -735,7 +797,7 @@ static void colorRangeChanged(GtkRange *range, void *userData) {
   //           user->pattern->seamlessModel->vertexCounts, 3,
   //           user->pattern->seamlessModel->vertexColor);
 
-  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
 
   // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
@@ -801,6 +863,14 @@ static void dimensionButtonClicked(GtkButton *button, void *userData) {
   gtk_range_set_value(GTK_RANGE(control->numCpySlider), 1.0f);
   gtk_range_set_value(GTK_RANGE(control->offsetControlSlider), 0.0f);
 
+  gtk_range_set_value(GTK_RANGE(control->colorMinSlider), 1.0f);
+  gtk_range_set_value(GTK_RANGE(control->colorMaxSlider), 1.0f);
+
+  gtk_range_set_value(GTK_RANGE(control->uvScaleSlider), 1.0f);
+
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(control->uvRotateCheckButton),
+                               FALSE);
+
   const gchar *widthChar = gtk_entry_get_text(GTK_ENTRY(control->widthEntry));
   const gchar *heightChar = gtk_entry_get_text(GTK_ENTRY(control->heightEntry));
 
@@ -810,10 +880,10 @@ static void dimensionButtonClicked(GtkButton *button, void *userData) {
     return;
   }
 
-  unsigned int width = (unsigned int)atof(widthChar);
-  unsigned int height = (unsigned int)atof(heightChar);
+  unsigned int newWidth = (unsigned int)atof(widthChar);
+  unsigned int newHeight = (unsigned int)atof(heightChar);
 
-  if (width == 0 || height == 0) {
+  if (newWidth == 0 || newHeight == 0) {
     messageDialog(control->mainWindow, "Warning!",
                   "The Width or Height Entry contain invalid characters!");
 
@@ -823,27 +893,93 @@ static void dimensionButtonClicked(GtkButton *button, void *userData) {
     return;
   }
 
+  // numCpyChanged(GTK_RANGE(control->numCpySlider), userData);
+
+  //  struct ControlData *control = (struct ControlData *)userData;
+  //  struct PatternData *user = control->patternData;
+
+  // unsigned int cpy = (unsigned int)gtk_range_get_value(range);
+
   double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
   double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
 
-  double scaleFactor = normalizeUVScaleRange(
-      gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)));
+  // double scaleFactor = normalizeUVScaleRange(
+  //     gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)));
 
   gint patternIndex =
       gtk_combo_box_get_active(GTK_COMBO_BOX(control->patternTypeComboBox));
 
   struct PatternModel *pattern =
-      patternModelNew(user->glArea, width, height, 1, patternIndex);
+      patternModelNew(user->glArea, newWidth, newHeight, 1, patternIndex);
 
   patternModelFree(user->pattern);
-
   user->pattern = pattern;
 
-  // only re-generate GL color data and fit it into new range
+  // double width = (double)__GL_VIEWPORT / (double)user->pattern->numWidth;
+  // double height = (double)__GL_VIEWPORT / (double)user->pattern->numHeight;
+
+  // double offset =
+  // gtk_range_get_value(GTK_RANGE(control->offsetControlSlider));
+
+  // g_print("height: %f\n", height);
+
+  //  gint offsetType =
+  //      gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetTypeComboBox));
+  //
+  //  double offsetAmount;
+  //
+  //  gint offsetControlType = gtk_combo_box_get_active(
+  //      GTK_COMBO_BOX(control->offsetControlTypeComboBox));
+  //
+  //  gint direction =
+  //      gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetDirectionComboBox));
+  //
+  //  if (offsetControlType == 0) {
+  //    if (direction == 0) {
+  //      offsetAmount = width / offset;
+  //    } else if (direction == 1) {
+  //      offsetAmount = height / offset;
+  //    }
+  //  } else if (offsetControlType == 1) {
+  //    if (direction == 0) {
+  //      offsetAmount = width * offset;
+  //    } else if (direction == 1) {
+  //      offsetAmount = height * offset;
+  //    }
+  //  }
+  //
+  //  if (offsetType == 0) {
+  //    patternOffsetModulo2(user, direction, offsetAmount);
+  //  } else if (offsetType == 1) {
+  //    patternOffsetAccumulate(user, direction, offsetAmount);
+  //  } else if (offsetType == 2) {
+  //    patternOffsetRandom(user, direction);
+  //  }
+
+  //  gboolean active = gtk_toggle_button_get_active(
+  //      GTK_TOGGLE_BUTTON(control->uvRotateCheckButton));
+  //
+  patternModelRandomizeUV(user->pattern);
+  //
+  //  if (active) {
+  //    patternModelRandomizeUVRotate(user->pattern);
+  //  }
+
+  // re-construct the color of whole pattern units
   patternModelRandomizeColor(user->pattern);
   patternModelFitColor(user->pattern, colorMin, colorMax);
-  patternModelRandomizeUV(user->pattern);
-  patternModelScaleUV(user->pattern, scaleFactor);
+  //  // patternModelRandomizeUV(user->pattern);
+  //  patternModelScaleUV(user->pattern, scaleFactor);
+
+  patternModelSeamlessModelConstruct(user->pattern, user->glArea);
+
+  fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+
+  setVBOData(&user->pattern->positionVBO, user->pattern->vertexCounts, 3,
+             user->pattern->vertexPosition);
+
+  setVBOData(&user->pattern->wireframeVBO, user->pattern->wireframeVertexCounts,
+             3, user->pattern->vertexWireframe);
 
   setVBOData(&user->pattern->colorVBO, user->pattern->vertexCounts, 3,
              user->pattern->vertexColor);
@@ -851,7 +987,44 @@ static void dimensionButtonClicked(GtkButton *button, void *userData) {
   setVBOData(&user->pattern->uvVBO, user->pattern->vertexCounts, 2,
              user->pattern->vertexUV);
 
+  // setVBOData(&user->pattern->seamlessModel->colorVBO,
+  //           user->pattern->seamlessModel->vertexCounts, 3,
+  //           user->pattern->seamlessModel->vertexColor);
+
+  // fitSeamlessModelColor(user->pattern, colorMin, colorMax);
+
+  // queue openGL render
   gtk_gl_area_queue_render(user->glArea);
+
+  //  double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
+  //  double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
+  //
+  //  double scaleFactor = normalizeUVScaleRange(
+  //      gtk_range_get_value(GTK_RANGE(control->uvScaleSlider)));
+  //
+  //  gint patternIndex =
+  //      gtk_combo_box_get_active(GTK_COMBO_BOX(control->patternTypeComboBox));
+  //
+  //  struct PatternModel *pattern =
+  //      patternModelNew(user->glArea, width, height, 1, patternIndex);
+  //
+  //  patternModelFree(user->pattern);
+  //
+  //  user->pattern = pattern;
+  //
+  //  // only re-generate GL color data and fit it into new range
+  //  patternModelRandomizeColor(user->pattern);
+  //  patternModelFitColor(user->pattern, colorMin, colorMax);
+  //  patternModelRandomizeUV(user->pattern);
+  //  patternModelScaleUV(user->pattern, scaleFactor);
+  //
+  //  setVBOData(&user->pattern->colorVBO, user->pattern->vertexCounts, 3,
+  //             user->pattern->vertexColor);
+  //
+  //  setVBOData(&user->pattern->uvVBO, user->pattern->vertexCounts, 2,
+  //             user->pattern->vertexUV);
+  //
+  //  gtk_gl_area_queue_render(user->glArea);
 }
 
 static gchar *getTextureFile(GtkWindow *parentWindow,
@@ -1690,7 +1863,7 @@ static gboolean glRender(GtkGLArea *area, GdkGLContext *context,
 
     if (user->wireframeSwitch == 1) {
       double newWidth =
-          gtk_range_get_value(GTK_RANGE(control->wireframeWidthSlider)) * 2;
+          gtk_range_get_value(GTK_RANGE(control->wireframeWidthSlider)) * 1;
       glLineWidth(newWidth);
 
       user->wireframeDraw = 1;

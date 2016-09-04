@@ -3,6 +3,7 @@
 
 #include <GL/glew.h>
 #include <gtk-3.0/gtk/gtk.h>
+#include <glib-2.0/glib.h>
 
 #include "constant.h"
 #include "rectangle.h"

@@ -1,4 +1,5 @@
 #include "rectangle.h"
+#include <cmockery/pbc.h>
 
 #ifdef UNIT_TESTING
 #include <cmockery/cmockery_override.h>
@@ -158,7 +159,7 @@ struct Rectangle *rectangleNew() {
   re->width = 1.0f;
   re->height = 1.0f;
 
-  re->rotateDegree = 0.0f;
+  //re->rotateDegree = 0.0f;
 
   // we want to modified the existing position data instead of allocating new
   // memory space
@@ -252,7 +253,7 @@ struct Rectangle *rectangleNew() {
   return re;
 }
 
-void rectangleMove(struct Rectangle *rect, GLfloat x, GLfloat y) {
+void rectangleMove(struct Rectangle *rect, double x, double y) {
   for (int i = 0; i < 4; i++) {
     rect->position[i][0] += x;
     rect->position[i][1] += y;
@@ -261,13 +262,13 @@ void rectangleMove(struct Rectangle *rect, GLfloat x, GLfloat y) {
   constructRectangleVertexPos(rect);
 }
 
-void rectangleMoveTo(struct Rectangle *rect, GLfloat x, GLfloat y) {
-  GLfloat mX = x - rect->position[rect->pivot][0];
-  GLfloat mY = y - rect->position[rect->pivot][1];
+void rectangleMoveTo(struct Rectangle *rect, double x, double y) {
+  double mX = x - (double)rect->position[rect->pivot][0];
+  double mY = y - (double)rect->position[rect->pivot][1];
   rectangleMove(rect, mX, mY);
 }
 
-void checkMaxMinValue(struct Rectangle *rect) {
+static void checkMaxMinValue(struct Rectangle *rect) {
   rect->xMax = 0;
   rect->xMin = 0;
   rect->yMax = 0;
@@ -276,14 +277,18 @@ void checkMaxMinValue(struct Rectangle *rect) {
   for (int i = 1; i < 4; i++) {
     if (rect->position[i][0] > rect->position[rect->xMax][0]) {
       rect->xMax = i;
+      goto CHECK_Y;
     }
 
     if (rect->position[i][0] < rect->position[rect->xMin][0]) {
       rect->xMin = i;
     }
 
+  CHECK_Y:
+
     if (rect->position[i][1] > rect->position[rect->yMax][1]) {
       rect->yMax = i;
+      continue;
     }
 
     if (rect->position[i][1] < rect->position[rect->yMin][1]) {
@@ -293,7 +298,7 @@ void checkMaxMinValue(struct Rectangle *rect) {
 }
 
 void rectangleMovePoint(struct Rectangle *rect, unsigned int pointNumber,
-                        GLfloat x, GLfloat y) {
+                        double x, double y) {
   rect->position[pointNumber][0] += x;
   rect->position[pointNumber][1] += y;
 
@@ -306,7 +311,7 @@ void rectangleMovePoint(struct Rectangle *rect, unsigned int pointNumber,
 }
 
 void rectangleMoveEdge(struct Rectangle *rect, unsigned int pointNumber01,
-                       unsigned int pointNumber02, GLfloat x, GLfloat y) {
+                       unsigned int pointNumber02, double x, double y) {
   rect->position[pointNumber01][0] += x;
   rect->position[pointNumber01][1] += y;
 
@@ -322,13 +327,21 @@ void rectangleMoveEdge(struct Rectangle *rect, unsigned int pointNumber01,
 }
 
 void rectangleInitUVProject(struct Rectangle *rect) {
-  GLfloat width = rect->position[rect->xMax][0] - rect->position[rect->xMin][0];
+  double width = (double)rect->position[rect->xMax][0] -
+                 (double)rect->position[rect->xMin][0];
+
+  double height = (double)rect->position[rect->yMax][1] -
+                  (double)rect->position[rect->yMin][1];
+
+  double scaleFactor = width > height ? width : height;
+
+  REQUIRE(scaleFactor > 0.0f);
 
   for (int i = 0; i < 4; i++) {
     rect->uv[i][0] =
-        (rect->position[i][0] - rect->position[rect->xMin][0]) / width;
+        (rect->position[i][0] - rect->position[rect->xMin][0]) / scaleFactor;
     rect->uv[i][1] =
-        (rect->position[i][1] - rect->position[rect->yMin][1]) / width;
+        (rect->position[i][1] - rect->position[rect->yMin][1]) / scaleFactor;
   }
 }
 
@@ -365,11 +378,14 @@ void rectangleInitUVProject(struct Rectangle *rect) {
 //  }
 //}
 
-void rectangleSetWidth(struct Rectangle *rect, GLfloat width) {
+void rectangleSetWidth(struct Rectangle *rect, double width) {
   // explicitily performing the sequential operation rather than construct a
   // loop to prevent the overhead of loop construction in this simple case
-  rect->position[1][0] = rect->position[0][0] - width;
-  rect->position[2][0] = rect->position[3][0] - width;
+
+  REQUIRE(width > 0.0f);
+
+  rect->position[1][0] = (double)rect->position[0][0] - width;
+  rect->position[2][0] = (double)rect->position[3][0] - width;
 
   rect->width = width;
 
@@ -379,12 +395,14 @@ void rectangleSetWidth(struct Rectangle *rect, GLfloat width) {
   constructRectangleVertexUV(rect);
 }
 
-void rectangleSetHeight(struct Rectangle *rect, GLfloat height) {
+void rectangleSetHeight(struct Rectangle *rect, double height) {
   // explicitily performing the sequential operation rather than construct a
   // loop to prevent the overhead of loop construction in this simple case
 
-  rect->position[2][1] = rect->position[0][1] - height;
-  rect->position[3][1] = rect->position[1][1] - height;
+  REQUIRE(height > 0.0f);
+
+  rect->position[2][1] = (double)rect->position[0][1] - height;
+  rect->position[3][1] = (double)rect->position[1][1] - height;
 
   rect->height = height;
 
@@ -394,17 +412,19 @@ void rectangleSetHeight(struct Rectangle *rect, GLfloat height) {
   constructRectangleVertexUV(rect);
 }
 
-void rectangleSetColorValue(struct Rectangle *rect, GLfloat colorValue) {
-  if (colorValue < 0.0f || colorValue > 1.0f) {
-    printf("Invalid color value for rectangle: %f\n", colorValue);
-    return;
-  }
+void rectangleSetColorValue(struct Rectangle *rect, double colorValue) {
+  // if (colorValue < 0.0f || colorValue > 1.0f) {
+  //  printf("Invalid color value for rectangle: %f\n", colorValue);
+  //  return;
+  //}
+
+  REQUIRE(colorValue >= 0.0f || colorValue <= 1.0f);
   rect->color = colorValue;
 
   constructRectangleVertexColor(rect);
 }
 
-void rectangleMoveUV(struct Rectangle *rect, GLfloat x, GLfloat y) {
+void rectangleMoveUV(struct Rectangle *rect, double x, double y) {
   for (int i = 0; i < 4; i++) {
     rect->uv[i][0] += x;
     rect->uv[i][1] += y;
@@ -414,6 +434,8 @@ void rectangleMoveUV(struct Rectangle *rect, GLfloat x, GLfloat y) {
 }
 
 void rectangleScaleUV(struct Rectangle *rect, double scaleFactor) {
+  REQUIRE(scaleFactor > 0.0f);
+
   constructRectangleVertexUV(rect);
 
   for (int i = 0; i < rect->vertexCounts * 2; i++) {
@@ -453,7 +475,7 @@ void rectangleScaleUV(struct Rectangle *rect, double scaleFactor) {
 }
 
 void rectangleRotateUV(struct Rectangle *rect, float degree) {
-  rect->rotateDegree = degree;
+  //rect->rotateDegree = degree;
   float rotateRad = degree * ONE_DEG_IN_RAD;
 
   for (int i = 0; i < 4; i++) {
@@ -472,6 +494,7 @@ void rectangleFree(struct Rectangle *re) {
     free(re->position[i]);
     free(re->uv[i]);
   }
+
   free(re->position);
   free(re->uv);
 

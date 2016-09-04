@@ -1,28 +1,31 @@
 #include "pattern_model.h"
 
+#include <cmockery/pbc.h>
+
 #ifdef UNIT_TESTING
 #include <cmockery/cmockery_override.h>
 #endif
 
 static inline void genRectRandUV(struct Rectangle *rect) {
-  double amountX = (GLfloat)rand() / (GLfloat)RAND_MAX;
-  double amountY = (GLfloat)rand() / (GLfloat)RAND_MAX;
+  double amountX = (double)rand() / (double)RAND_MAX;
+  double amountY = (double)rand() / (double)RAND_MAX;
 
-  amountX = (amountX * 2.0f) - 1.0f;
-  amountY = (amountY * 2.0f) - 1.0f;
+  amountX = (amountX - 0.5f) * 2.0f;
+  amountY = (amountY - 0.5f) * 2.0f;
 
-  // rectangleInitUVProject(rect);
-  rectangleMoveUV(rect, amountX, amountY);
+  double randAmount = ((double)rand() / (double)RAND_MAX) * 10;
+
+  rectangleMoveUV(rect, amountX * randAmount, amountY * randAmount);
 }
 
 static inline void genRectRandColor(struct Rectangle *rect) {
-  double color = (GLfloat)rand() / (GLfloat)RAND_MAX;
+  double color = (double)rand() / (double)RAND_MAX;
   rectangleSetColorValue(rect, color);
 }
 
 static inline void genRectRandRotateUV(struct Rectangle *rect) {
-  double randNum = (GLfloat)rand() / (GLfloat)RAND_MAX;
-  double rotateFactor = ((randNum * 2) - 1) * 360;
+  double randNum = (double)rand() / (double)RAND_MAX;
+  double rotateFactor = ((randNum - 0.5f) * 2.0f) * 720.0f;
 
   rectangleRotateUV(rect, rotateFactor);
 }
@@ -51,7 +54,16 @@ void patternModelScaleUV(struct PatternModel *pattern, double scaleFactor) {
     rectangleScaleUV(pattern->units[i], scaleFactor);
   }
 
+  REQUIRE(scaleFactor > 0.0f);
+
   patternModelInitUV(pattern);
+
+  //  for (int i = 0; i < pattern->numUnits; i++) {
+  //    int vertexUVDataCounts = pattern->units[i]->vertexCounts * 2;
+  //    for (int j = 0; j < vertexUVDataCounts; j++) {
+  //      pattern->vertexUV[(i * vertexUVDataCounts) + j] *= scaleFactor;
+  //    }
+  //  }
 }
 
 static void patternModelInitPos(struct PatternModel *pattern) {
@@ -115,6 +127,73 @@ void patternModelRandomizeUVRotate(struct PatternModel *pattern) {
   patternModelInitUV(pattern);
 }
 
+static struct PatternModel *patternModelCloneData(
+    struct PatternModel *pattern) {
+  struct PatternModel *re =
+      defenseMalloc(sizeof(struct PatternModel), mallocFailAbort, NULL);
+
+  re->sizeX = pattern->sizeX;
+  re->sizeY = pattern->sizeY;
+
+  // unsigned int sizeX;
+  // unsigned int sizeY;
+
+  re->numWidth = pattern->numWidth;
+  re->numHeight = pattern->numHeight;
+
+  //  unsigned int numWidth;
+  //  unsigned int numHeight;
+
+  struct Rectangle **units;
+
+  re->numUnits = pattern->numUnits;
+  re->vertexCounts = pattern->vertexCounts;
+  re->wireframeVertexCounts = pattern->wireframeVertexCounts;
+
+  //  unsigned int numUnits;
+  //  unsigned int vertexCounts;
+  //  unsigned int wireframeVertexCounts;
+
+  re->vertexPosition = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat),
+                                     mallocFailAbort, NULL);
+  re->vertexUV = defenseMalloc(re->vertexCounts * 2 * sizeof(GLfloat),
+                               mallocFailAbort, NULL);
+  re->vertexColor = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat),
+                                  mallocFailAbort, NULL);
+
+  re->vertexWireframe = defenseMalloc(
+      re->wireframeVertexCounts * 3 * sizeof(GLfloat), mallocFailAbort, NULL);
+
+  memcpy(re->vertexPosition, pattern->vertexPosition,
+         re->vertexCounts * 3 * sizeof(GLfloat));
+
+  memcpy(re->vertexColor, pattern->vertexColor,
+         re->vertexCounts * 3 * sizeof(GLfloat));
+
+  memcpy(re->vertexUV, pattern->vertexUV,
+         re->vertexCounts * 2 * sizeof(GLfloat));
+
+  memcpy(re->vertexWireframe, pattern->vertexWireframe,
+         re->wireframeVertexCounts * 3 * sizeof(GLfloat));
+
+  // GLfloat *vertexPosition;
+  // GLfloat *vertexUV;
+  // GLfloat *vertexColor;
+
+  // GLfloat *vertexWireframe;
+
+  // GLuint vao;
+  // GLuint positionVBO;
+  // GLuint uvVBO;
+  // GLuint colorVBO;
+
+  // GLuint wireframeVBO;
+
+  re->seamlessModel = NULL;
+
+  return re;
+}
+
 void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
                                         GtkGLArea *glArea) {
   if (pattern->seamlessModel != NULL) {
@@ -124,33 +203,53 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
 
   pattern->numUnits = pattern->numWidth * pattern->numHeight;
 
-  //  while (1) {
-  //    int reuse = 0;
-  //    for (int i = 0; i < pattern->numUnits; i++) {
-  //      struct Rectangle *rect = pattern->units[i];
-  //
-  //      // reuse original unit
-  //      if (rect->position[rect->xMin][0] >= 1.0f) {
-  //        rectangleMove(rect, -__GL_VIEWPORT, 0);
-  //      } else if (rect->position[rect->xMax][0] <= -1.0f) {
-  //        rectangleMove(rect, __GL_VIEWPORT, 0);
-  //      } else if (rect->position[rect->yMin][1] >= 1.0f) {
-  //        rectangleMove(rect, 0, -__GL_VIEWPORT);
-  //      } else if (rect->position[rect->yMax][1] <= -1.0f) {
-  //        rectangleMove(rect, 0, __GL_VIEWPORT);
-  //      } else {
-  //        continue;
-  //      }
-  //
-  //      reuse++;
-  //    }
-  //
-  //    if (reuse == 0) {
-  //      break;
-  //    }
-  //  }
+  while (1) {
+    int reuse = 0;
+    for (int i = 0; i < pattern->numUnits; i++) {
+      struct Rectangle *rect = pattern->units[i];
+
+      // reuse original unit
+      if (rect->position[rect->xMin][0] >= 1.0f) {
+        rectangleMove(rect, -__GL_VIEWPORT, 0);
+      } else if (rect->position[rect->xMax][0] <= -1.0f) {
+        rectangleMove(rect, __GL_VIEWPORT, 0);
+      } else if (rect->position[rect->yMin][1] >= 1.0f) {
+        rectangleMove(rect, 0, -__GL_VIEWPORT);
+      } else if (rect->position[rect->yMax][1] <= -1.0f) {
+        rectangleMove(rect, 0, __GL_VIEWPORT);
+      } else {
+        continue;
+      }
+
+      reuse++;
+    }
+
+    if (reuse == 0) {
+      break;
+    }
+  }
 
   patternModelInitPos(pattern);
+
+  //    gtk_gl_area_make_current(glArea);
+  //
+  //    GLuint vao = 0;
+  //    glGenVertexArrays(1, &vao);
+  //    glBindVertexArray(vao);
+  //
+  //    re->positionVBO =
+  //        generateVBO(&vao, re->vertexCounts, 3, re->vertexPosition, 0);
+  //
+  //    re->colorVBO = generateVBO(&vao, re->vertexCounts, 3, re->vertexColor,
+  //    1);
+  //
+  //    re->uvVBO = generateVBO(&vao, re->vertexCounts, 2, re->vertexUV, 2);
+  //
+  //    re->wireframeVBO =
+  //        generateVBO(&vao, re->wireframeVertexCounts, 3, re->vertexWireframe,
+  //        3);
+  //
+  //    re->vao = vao;
 
   unsigned int numNew = 0;
 
@@ -193,8 +292,8 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
     re->numWidth = pattern->numWidth;
     re->numHeight = pattern->numHeight;
 
-    GLfloat width = (GLfloat)__GL_VIEWPORT / (GLfloat)re->numWidth;
-    GLfloat height = (GLfloat)__GL_VIEWPORT / (GLfloat)re->numHeight;
+    double width = (double)__GL_VIEWPORT / (double)re->numWidth;
+    double height = (double)__GL_VIEWPORT / (double)re->numHeight;
 
     re->numUnits = numNew;
     re->units = defenseMalloc(numNew * sizeof(struct Rectangle *),
@@ -257,11 +356,13 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
     re->vertexWireframe = defenseMalloc(
         re->wireframeVertexCounts * 3 * sizeof(GLfloat), mallocFailAbort, NULL);
 
-    memcpy(re->vertexColor, pattern->vertexColor,
-           re->vertexCounts * 3 * sizeof(GLfloat));
+    //    memcpy(re->vertexColor, pattern->vertexColor,
+    //           re->vertexCounts * 3 * sizeof(GLfloat));
 
     patternModelInitPos(re);
     patternModelInitUV(re);
+
+    patternModelInitColor(re);
 
     gtk_gl_area_make_current(glArea);
 
@@ -288,8 +389,8 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
 }
 
 void patternModelInitUnitsPosition(struct PatternModel *pattern) {
-  double width = (GLfloat)__GL_VIEWPORT / pattern->numWidth;
-  double height = (GLfloat)__GL_VIEWPORT / pattern->numHeight;
+  double width = (double)__GL_VIEWPORT / (double)pattern->numWidth;
+  double height = (double)__GL_VIEWPORT / (double)pattern->numHeight;
 
   for (int h = 0; h < pattern->numHeight; h++) {
     for (int w = 0; w < pattern->numWidth; w++) {
@@ -313,8 +414,8 @@ static void modelGenerate01(struct PatternModel *pattern) {
   pattern->units = defenseMalloc(pattern->numUnits * sizeof(struct Rectangle *),
                                  mallocFailAbort, NULL);
 
-  double width = (GLfloat)__GL_VIEWPORT / (GLfloat)pattern->numWidth;
-  double height = (GLfloat)__GL_VIEWPORT / (GLfloat)pattern->numHeight;
+  double width = (double)__GL_VIEWPORT / (double)pattern->numWidth;
+  double height = (double)__GL_VIEWPORT / (double)pattern->numHeight;
 
   for (int h = 0; h < pattern->numHeight; h++) {
     for (int w = 0; w < pattern->numWidth; w++) {
@@ -356,7 +457,7 @@ static void modelGenerate01(struct PatternModel *pattern) {
 static void modelGenerate02(struct PatternModel *pattern) {
   modelGenerate01(pattern);
 
-  double width = (GLfloat)__GL_VIEWPORT / (GLfloat)pattern->numWidth;
+  double width = (double)__GL_VIEWPORT / (double)pattern->numWidth;
   double moveAmount = tan(45 * ONE_DEG_IN_RAD) * width;
 
   for (int h = 0; h < pattern->numHeight; h++) {
@@ -365,13 +466,81 @@ static void modelGenerate02(struct PatternModel *pattern) {
 
       if (w % 2 == 0) {
         rectangleMoveEdge(rect, 0, 3, 0.0f, -moveAmount);
+        rectangleInitUVProject(rect);
         rectangleRotateUV(rect, 45.0f);
       } else {
         rectangleMoveEdge(rect, 1, 2, 0.0f, -moveAmount);
+        rectangleInitUVProject(rect);
         rectangleRotateUV(rect, -45.0f);
       }
     }
   }
+}
+
+static void modelGenerate03(struct PatternModel *pattern) {
+  //  pattern->numUnits = pattern->numWidth * pattern->numHeight;
+
+  double width = (double)__GL_VIEWPORT / (double)pattern->numWidth;
+  double height = (double)__GL_VIEWPORT / (double)pattern->numHeight;
+
+  GSList *rectList = NULL;
+
+  pattern->units = defenseMalloc(pattern->numUnits * sizeof(struct Rectangle *),
+                                 mallocFailAbort, NULL);
+  //
+  //
+  //  for (int h = 0; h < pattern->numHeight; h++) {
+  //    for (int w = 0; w < pattern->numWidth; w++) {
+  //      struct Rectangle *rect = rectangleNew();
+  //      // we already randomize the color within the Rectangle construction
+  //      // no need to do it again here
+  //      // setRectRandColor(rect, 1.0f, 1.0f);
+  //
+  //      rectangleSetWidth(rect, width);
+  //      rectangleSetHeight(rect, height);
+  //
+  //      // up right corner is the pivot of the Rectangle
+  //      rectangleMove(rect, (w * -width), (h * -height));
+  //
+  //      pattern->units[(h * pattern->numWidth) + w] = rect;
+  //    }
+  //  }
+  //
+  //  pattern->vertexCounts = pattern->numUnits *
+  //  (*pattern->units)->vertexCounts;
+  //  pattern->wireframeVertexCounts =
+  //      pattern->numUnits * (*pattern->units)->wireframeVertexCounts;
+  //
+  //  pattern->vertexPosition = defenseMalloc(
+  //      pattern->vertexCounts * 3 * sizeof(GLfloat), mallocFailAbort, NULL);
+  //  pattern->vertexUV = defenseMalloc(pattern->vertexCounts * 2 *
+  //  sizeof(GLfloat),
+  //                                    mallocFailAbort, NULL);
+  //  pattern->vertexColor = defenseMalloc(
+  //      pattern->vertexCounts * 3 * sizeof(GLfloat), mallocFailAbort, NULL);
+  //
+  //  pattern->vertexWireframe =
+  //      defenseMalloc(pattern->wireframeVertexCounts * 3 * sizeof(GLfloat),
+  //                    mallocFailAbort, NULL);
+  //  modelGenerate01(pattern);
+  //
+  //  double width = (GLfloat)__GL_VIEWPORT / (GLfloat)pattern->numWidth;
+  //  double moveAmount = tan(45 * ONE_DEG_IN_RAD) * width;
+  //
+  //  for (int h = 0; h < pattern->numHeight; h++) {
+  //    for (int w = 0; w < pattern->numWidth; w++) {
+  //      struct Rectangle *rect = pattern->units[(h * pattern->numWidth) +
+  //      w];
+  //
+  //      if (w % 2 == 0) {
+  //        rectangleMoveEdge(rect, 0, 3, 0.0f, -moveAmount);
+  //        rectangleRotateUV(rect, 45.0f);
+  //      } else {
+  //        rectangleMoveEdge(rect, 1, 2, 0.0f, -moveAmount);
+  //        rectangleRotateUV(rect, -45.0f);
+  //      }
+  //    }
+  //  }
 }
 
 // static void modelUVConstruct01(struct PatternModel *pattern) {
@@ -401,21 +570,33 @@ static void getDimensionNumber02(struct PatternModel *pattern,
                                  const unsigned int cpy) {
   double gcd = euclidGCD(pattern->sizeX * 2, pattern->sizeY);
 
-  // g_print("gcd: %f\n", gcd);
-
   double lcm =
       gcd * ((double)pattern->sizeX * 2 / gcd) * ((double)pattern->sizeY / gcd);
-
-  // g_print("lcm: %f\n", lcm);
 
   double numWidth = (lcm / (double)pattern->sizeX) * cpy;
   double numHeight = (lcm / (double)pattern->sizeY) * cpy;
 
+  // g_print("numHeight: %f\n", numHeight);
+
   pattern->numWidth = (unsigned int)numWidth;
   pattern->numHeight = (unsigned int)numHeight;
+}
 
-  // g_print("num width: %d\n", pattern->numWidth);
-  // g_print("num height: %d\n", pattern->numHeight);
+static void getDimensionNumber03(struct PatternModel *pattern,
+                                 const unsigned int cpy) {
+  double gcd = euclidGCD(pattern->sizeX * 2, pattern->sizeY);
+
+  double lcm =
+      gcd * ((double)pattern->sizeX * 2 / gcd) * ((double)pattern->sizeY / gcd);
+
+  double shortEdge =
+      pattern->sizeX > pattern->sizeY ? pattern->sizeY : pattern->sizeX;
+
+  double numWidth = (lcm / (double)shortEdge) * cpy;
+  double numHeight = (lcm / (double)shortEdge) * cpy;
+
+  pattern->numWidth = (unsigned int)numWidth;
+  pattern->numHeight = (unsigned int)numHeight;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -437,11 +618,11 @@ struct PatternModel *patternModelNew(GtkGLArea *glArea,
   pattern->sizeX = sizeX;
   pattern->sizeY = sizeY;
 
-  dimensionFunc *dimensionNumberFunc[2] = {
-      getDimensionNumber01, getDimensionNumber02,
+  dimensionFunc *dimensionNumberFunc[3] = {
+      getDimensionNumber01, getDimensionNumber02, getDimensionNumber03,
   };
-  generateFunc *modelGenerateFunc[2] = {
-      modelGenerate01, modelGenerate02,
+  generateFunc *modelGenerateFunc[3] = {
+      modelGenerate01, modelGenerate02, modelGenerate03,
   };
 
   dimensionNumberFunc[patternIndex](pattern, cpy);
