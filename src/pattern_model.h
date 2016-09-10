@@ -50,8 +50,8 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
                                         GtkGLArea *glArea);
 void patternModelInitUnitsPosition(struct PatternModel *pattern);
 
-void patternModelFitColor(struct PatternModel *pattern, float min,
-                          float max);
+void patternModelFitColor(struct PatternModel *pattern, double min,
+                          double max);
 void patternModelRandomizeColor(struct PatternModel *pattern);
 
 void patternModelRandomizeUVRotate(struct PatternModel *pattern);

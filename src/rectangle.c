@@ -55,6 +55,9 @@ static inline void constructRectangleVertexColor(struct Rectangle *rect) {
 struct Rectangle *rectangleClone(struct Rectangle *rect) {
   struct Rectangle *re = rectangleNew();
 
+  re->height = rect->height;
+  re->width = rect->width;
+
   re->position[0][0] = rect->position[0][0];
   re->position[0][1] = rect->position[0][1];
   re->position[0][2] = rect->position[0][2];
@@ -151,15 +154,22 @@ struct Rectangle *rectangleNew() {
   re->vertexCounts = 6;
   re->wireframeVertexCounts = 8;
 
+  //  re->position =
+  //      (GLfloat **)defenseMalloc(4 * sizeof(GLfloat *), mallocFailAbort,
+  //      NULL);
+  //  re->uv =
+  //      (GLfloat **)defenseMalloc(4 * sizeof(GLfloat *), mallocFailAbort,
+  //      NULL);
+
   re->position =
-      (GLfloat **)defenseMalloc(4 * sizeof(GLfloat *), mallocFailAbort, NULL);
+      (double **)defenseMalloc(4 * sizeof(double *), mallocFailAbort, NULL);
   re->uv =
-      (GLfloat **)defenseMalloc(4 * sizeof(GLfloat *), mallocFailAbort, NULL);
+      (double **)defenseMalloc(4 * sizeof(double *), mallocFailAbort, NULL);
 
   re->width = 1.0f;
   re->height = 1.0f;
 
-  //re->rotateDegree = 0.0f;
+  // re->rotateDegree = 0.0f;
 
   // we want to modified the existing position data instead of allocating new
   // memory space
@@ -171,10 +181,17 @@ struct Rectangle *rectangleNew() {
   //  re->yMin = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
 
   for (int i = 0; i < 4; i++) {
+    //  re->position[i] =
+    //      (GLfloat *)defenseMalloc(3 * sizeof(GLfloat), mallocFailAbort,
+    //      NULL);
+    //  re->uv[i] =
+    //      (GLfloat *)defenseMalloc(2 * sizeof(GLfloat), mallocFailAbort,
+    //      NULL);
+
     re->position[i] =
-        (GLfloat *)defenseMalloc(3 * sizeof(GLfloat), mallocFailAbort, NULL);
+        (double *)defenseMalloc(3 * sizeof(double), mallocFailAbort, NULL);
     re->uv[i] =
-        (GLfloat *)defenseMalloc(2 * sizeof(GLfloat), mallocFailAbort, NULL);
+        (double *)defenseMalloc(2 * sizeof(double), mallocFailAbort, NULL);
   }
 
   re->position[0][0] = 1.0f;
@@ -474,13 +491,13 @@ void rectangleScaleUV(struct Rectangle *rect, double scaleFactor) {
   // constructRectangleVertexUV(rect);
 }
 
-void rectangleRotateUV(struct Rectangle *rect, float degree) {
-  //rect->rotateDegree = degree;
-  float rotateRad = degree * ONE_DEG_IN_RAD;
+void rectangleRotateUV(struct Rectangle *rect, double degree) {
+  // rect->rotateDegree = degree;
+  double rotateRad = degree * ONE_DEG_IN_RAD;
 
   for (int i = 0; i < 4; i++) {
-    float oldX = rect->uv[i][0];
-    float oldY = rect->uv[i][1];
+    double oldX = (double)rect->uv[i][0];
+    double oldY = (double)rect->uv[i][1];
 
     rect->uv[i][0] = (oldX * cos(rotateRad)) - (oldY * sin(rotateRad));
     rect->uv[i][1] = (oldY * cos(rotateRad)) + (oldX * sin(rotateRad));

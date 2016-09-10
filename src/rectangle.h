@@ -10,14 +10,17 @@
 #include "constant.h"
 
 struct Rectangle {
-  GLfloat **position;
-  GLfloat **uv;
+  // GLfloat **position;
+  // GLfloat **uv;
+
+  double **position;
+  double **uv;
 
   double width;
   double height;
   double color;
 
-  //double rotateDegree;
+  // double rotateDegree;
 
   unsigned int pivot;
 
@@ -54,8 +57,7 @@ void rectangleMove(struct Rectangle *rect, double x, double y);
 void rectangleMovePoint(struct Rectangle *rect, unsigned int pointNumber,
                         double x, double y);
 
-void rectangleMoveEdge(struct Rectangle *rect,
-                       unsigned int pointNumber01,
+void rectangleMoveEdge(struct Rectangle *rect, unsigned int pointNumber01,
                        unsigned int pointNumber02, double x, double y);
 
 void rectangleMoveTo(struct Rectangle *rect, double x, double y);
@@ -72,7 +74,7 @@ void rectangleMoveUV(struct Rectangle *rect, double x, double y);
 
 void rectangleScaleUV(struct Rectangle *rect, double scaleFactor);
 
-void rectangleRotateUV(struct Rectangle *rect, float degree);
+void rectangleRotateUV(struct Rectangle *rect, double degree);
 
 void rectangleFree(struct Rectangle *rect);
 

@@ -78,6 +78,8 @@ static struct PatternData *patternDataNew(GtkGLArea *glArea,
 
   re->wireframeColor =
       defenseMalloc(3 * sizeof(GLfloat), mallocFailAbort, NULL);
+  // memset(re->wireframeColor, 1, 3 * sizeof(GLfloat));
+
   re->wireframeColor[0] = 1.0f;
   re->wireframeColor[1] = 1.0f;
   re->wireframeColor[2] = 1.0f;
@@ -284,19 +286,19 @@ static void uvScaleChanged(GtkRange *range, void *userData) {
   gtk_gl_area_queue_render(user->glArea);
 }
 
-static double normalizeUVRotateRange(double rangeValue) {
-  rangeValue = (rangeValue * 2) - 1;
-  double rotateFactor = rangeValue * 360;
-
-  return rotateFactor;
-}
+// static double normalizeUVRotateRange(double rangeValue) {
+//  rangeValue = (rangeValue * 2) - 1;
+//  double rotateFactor = rangeValue * 360;
+//
+//  return rotateFactor;
+//}
 
 static void uvRotateToggled(GtkToggleButton *toggleButton, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
   struct PatternData *user = control->patternData;
 
-  double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
-  double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
+  //  double colorMin = gtk_range_get_value(GTK_RANGE(control->colorMinSlider));
+  //  double colorMax = gtk_range_get_value(GTK_RANGE(control->colorMaxSlider));
 
   gboolean active = gtk_toggle_button_get_active(toggleButton);
 
@@ -446,7 +448,7 @@ static void offsetControlChanged(GtkRange *range, void *userData) {
   gint offsetType =
       gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetTypeComboBox));
 
-  double offsetAmount;
+  double offsetAmount = 0.0f;
 
   gint offsetControlType = gtk_combo_box_get_active(
       GTK_COMBO_BOX(control->offsetControlTypeComboBox));
@@ -635,7 +637,7 @@ static void numCpyChanged(GtkRange *range, void *userData) {
   gint offsetType =
       gtk_combo_box_get_active(GTK_COMBO_BOX(control->offsetTypeComboBox));
 
-  double offsetAmount;
+  double offsetAmount = 0.0f;
 
   gint offsetControlType = gtk_combo_box_get_active(
       GTK_COMBO_BOX(control->offsetControlTypeComboBox));
@@ -838,7 +840,7 @@ static void messageDialog(GtkWindow *parentWindow, const gchar *title,
 static void entryBufferInserted(GtkEntryBuffer *buffer, guint position,
                                 gchar *chars, guint nChars, void *userData) {
   struct ControlData *control = (struct ControlData *)userData;
-  struct PatternData *user = control->patternData;
+  // struct PatternData *user = control->patternData;
 
   gchar *text = (gchar *)gtk_entry_buffer_get_text(buffer);
   size_t textLen = strlen(text);

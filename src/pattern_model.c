@@ -94,7 +94,8 @@ static void patternModelInitColor(struct PatternModel *pattern) {
   }
 }
 
-void patternModelFitColor(struct PatternModel *pattern, float min, float max) {
+void patternModelFitColor(struct PatternModel *pattern, double min,
+                          double max) {
   for (int i = 0; i < pattern->numUnits; i++) {
     int vertexDataCounts = pattern->units[i]->vertexCounts * 3;
     struct Rectangle *rect = pattern->units[i];
@@ -127,72 +128,72 @@ void patternModelRandomizeUVRotate(struct PatternModel *pattern) {
   patternModelInitUV(pattern);
 }
 
-static struct PatternModel *patternModelCloneData(
-    struct PatternModel *pattern) {
-  struct PatternModel *re =
-      defenseMalloc(sizeof(struct PatternModel), mallocFailAbort, NULL);
-
-  re->sizeX = pattern->sizeX;
-  re->sizeY = pattern->sizeY;
-
-  // unsigned int sizeX;
-  // unsigned int sizeY;
-
-  re->numWidth = pattern->numWidth;
-  re->numHeight = pattern->numHeight;
-
-  //  unsigned int numWidth;
-  //  unsigned int numHeight;
-
-  struct Rectangle **units;
-
-  re->numUnits = pattern->numUnits;
-  re->vertexCounts = pattern->vertexCounts;
-  re->wireframeVertexCounts = pattern->wireframeVertexCounts;
-
-  //  unsigned int numUnits;
-  //  unsigned int vertexCounts;
-  //  unsigned int wireframeVertexCounts;
-
-  re->vertexPosition = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat),
-                                     mallocFailAbort, NULL);
-  re->vertexUV = defenseMalloc(re->vertexCounts * 2 * sizeof(GLfloat),
-                               mallocFailAbort, NULL);
-  re->vertexColor = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat),
-                                  mallocFailAbort, NULL);
-
-  re->vertexWireframe = defenseMalloc(
-      re->wireframeVertexCounts * 3 * sizeof(GLfloat), mallocFailAbort, NULL);
-
-  memcpy(re->vertexPosition, pattern->vertexPosition,
-         re->vertexCounts * 3 * sizeof(GLfloat));
-
-  memcpy(re->vertexColor, pattern->vertexColor,
-         re->vertexCounts * 3 * sizeof(GLfloat));
-
-  memcpy(re->vertexUV, pattern->vertexUV,
-         re->vertexCounts * 2 * sizeof(GLfloat));
-
-  memcpy(re->vertexWireframe, pattern->vertexWireframe,
-         re->wireframeVertexCounts * 3 * sizeof(GLfloat));
-
-  // GLfloat *vertexPosition;
-  // GLfloat *vertexUV;
-  // GLfloat *vertexColor;
-
-  // GLfloat *vertexWireframe;
-
-  // GLuint vao;
-  // GLuint positionVBO;
-  // GLuint uvVBO;
-  // GLuint colorVBO;
-
-  // GLuint wireframeVBO;
-
-  re->seamlessModel = NULL;
-
-  return re;
-}
+//static struct PatternModel *patternModelCloneData(
+//    struct PatternModel *pattern) {
+//  struct PatternModel *re =
+//      defenseMalloc(sizeof(struct PatternModel), mallocFailAbort, NULL);
+//
+//  re->sizeX = pattern->sizeX;
+//  re->sizeY = pattern->sizeY;
+//
+//  // unsigned int sizeX;
+//  // unsigned int sizeY;
+//
+//  re->numWidth = pattern->numWidth;
+//  re->numHeight = pattern->numHeight;
+//
+//  //  unsigned int numWidth;
+//  //  unsigned int numHeight;
+//
+//  // struct Rectangle **units;
+//
+//  re->numUnits = pattern->numUnits;
+//  re->vertexCounts = pattern->vertexCounts;
+//  re->wireframeVertexCounts = pattern->wireframeVertexCounts;
+//
+//  //  unsigned int numUnits;
+//  //  unsigned int vertexCounts;
+//  //  unsigned int wireframeVertexCounts;
+//
+//  re->vertexPosition = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat),
+//                                     mallocFailAbort, NULL);
+//  re->vertexUV = defenseMalloc(re->vertexCounts * 2 * sizeof(GLfloat),
+//                               mallocFailAbort, NULL);
+//  re->vertexColor = defenseMalloc(re->vertexCounts * 3 * sizeof(GLfloat),
+//                                  mallocFailAbort, NULL);
+//
+//  re->vertexWireframe = defenseMalloc(
+//      re->wireframeVertexCounts * 3 * sizeof(GLfloat), mallocFailAbort, NULL);
+//
+//  memcpy(re->vertexPosition, pattern->vertexPosition,
+//         re->vertexCounts * 3 * sizeof(GLfloat));
+//
+//  memcpy(re->vertexColor, pattern->vertexColor,
+//         re->vertexCounts * 3 * sizeof(GLfloat));
+//
+//  memcpy(re->vertexUV, pattern->vertexUV,
+//         re->vertexCounts * 2 * sizeof(GLfloat));
+//
+//  memcpy(re->vertexWireframe, pattern->vertexWireframe,
+//         re->wireframeVertexCounts * 3 * sizeof(GLfloat));
+//
+//  // GLfloat *vertexPosition;
+//  // GLfloat *vertexUV;
+//  // GLfloat *vertexColor;
+//
+//  // GLfloat *vertexWireframe;
+//
+//  // GLuint vao;
+//  // GLuint positionVBO;
+//  // GLuint uvVBO;
+//  // GLuint colorVBO;
+//
+//  // GLuint wireframeVBO;
+//
+//  re->seamlessModel = NULL;
+//
+//  return re;
+//}
 
 void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
                                         GtkGLArea *glArea) {
@@ -292,8 +293,8 @@ void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
     re->numWidth = pattern->numWidth;
     re->numHeight = pattern->numHeight;
 
-    double width = (double)__GL_VIEWPORT / (double)re->numWidth;
-    double height = (double)__GL_VIEWPORT / (double)re->numHeight;
+    // double width = (double)__GL_VIEWPORT / (double)re->numWidth;
+    // double height = (double)__GL_VIEWPORT / (double)re->numHeight;
 
     re->numUnits = numNew;
     re->units = defenseMalloc(numNew * sizeof(struct Rectangle *),
@@ -480,13 +481,14 @@ static void modelGenerate02(struct PatternModel *pattern) {
 static void modelGenerate03(struct PatternModel *pattern) {
   //  pattern->numUnits = pattern->numWidth * pattern->numHeight;
 
-  double width = (double)__GL_VIEWPORT / (double)pattern->numWidth;
-  double height = (double)__GL_VIEWPORT / (double)pattern->numHeight;
-
-  GSList *rectList = NULL;
-
-  pattern->units = defenseMalloc(pattern->numUnits * sizeof(struct Rectangle *),
-                                 mallocFailAbort, NULL);
+  //  double width = (double)__GL_VIEWPORT / (double)pattern->numWidth;
+  //  double height = (double)__GL_VIEWPORT / (double)pattern->numHeight;
+  //
+  //  GSList *rectList = NULL;
+  //
+  //  pattern->units = defenseMalloc(pattern->numUnits * sizeof(struct Rectangle
+  //  *),
+  //                                 mallocFailAbort, NULL);
   //
   //
   //  for (int h = 0; h < pattern->numHeight; h++) {
