@@ -1,5 +1,7 @@
 #include "rectangle.h"
-#include <cmockery/pbc.h>
+
+#include "../../general/src/debug_macro.h"
+//#include <cmockery/pbc.h>
 
 #ifdef UNIT_TESTING
 #include <cmockery/cmockery_override.h>
@@ -99,7 +101,7 @@ struct Rectangle *rectangleClone(struct Rectangle *rect) {
   // re->yMin = rect->yMin;
 
   re->pivot = rect->pivot;
-  //  re->pivot = (GLfloat *)defenseMalloc(3 * sizeof(GLfloat));
+  //  re->pivot = (GLfloat *)DEFENSE_MALLOC(3 * sizeof(GLfloat));
   //  re->pivot[0] = 0;
   //  re->pivot[1] = 0;
   //  re->pivot[2] = 0;
@@ -149,22 +151,22 @@ struct Rectangle *rectangleClone(struct Rectangle *rect) {
 
 struct Rectangle *rectangleNew() {
   struct Rectangle *re =
-      defenseMalloc(sizeof(struct Rectangle), mallocFailAbort, NULL);
+      DEFENSE_MALLOC(sizeof(struct Rectangle), mallocFailAbort, NULL);
 
   re->vertexCounts = 6;
   re->wireframeVertexCounts = 8;
 
   //  re->position =
-  //      (GLfloat **)defenseMalloc(4 * sizeof(GLfloat *), mallocFailAbort,
+  //      (GLfloat **)DEFENSE_MALLOC(4 * sizeof(GLfloat *), mallocFailAbort,
   //      NULL);
   //  re->uv =
-  //      (GLfloat **)defenseMalloc(4 * sizeof(GLfloat *), mallocFailAbort,
+  //      (GLfloat **)DEFENSE_MALLOC(4 * sizeof(GLfloat *), mallocFailAbort,
   //      NULL);
 
   re->position =
-      (double **)defenseMalloc(4 * sizeof(double *), mallocFailAbort, NULL);
+      (double **)DEFENSE_MALLOC(4 * sizeof(double *), mallocFailAbort, NULL);
   re->uv =
-      (double **)defenseMalloc(4 * sizeof(double *), mallocFailAbort, NULL);
+      (double **)DEFENSE_MALLOC(4 * sizeof(double *), mallocFailAbort, NULL);
 
   re->width = 1.0f;
   re->height = 1.0f;
@@ -173,25 +175,25 @@ struct Rectangle *rectangleNew() {
 
   // we want to modified the existing position data instead of allocating new
   // memory space
-  // re->pivot = (GLfloat **)defenseMalloc(sizeof(GLfloat *));
+  // re->pivot = (GLfloat **)DEFENSE_MALLOC(sizeof(GLfloat *));
 
-  //  re->xMax = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
-  //  re->xMin = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
-  //  re->yMax = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
-  //  re->yMin = (unsigned int *)defenseMalloc(2 * sizeof(unsigned int));
+  //  re->xMax = (unsigned int *)DEFENSE_MALLOC(2 * sizeof(unsigned int));
+  //  re->xMin = (unsigned int *)DEFENSE_MALLOC(2 * sizeof(unsigned int));
+  //  re->yMax = (unsigned int *)DEFENSE_MALLOC(2 * sizeof(unsigned int));
+  //  re->yMin = (unsigned int *)DEFENSE_MALLOC(2 * sizeof(unsigned int));
 
   for (int i = 0; i < 4; i++) {
     //  re->position[i] =
-    //      (GLfloat *)defenseMalloc(3 * sizeof(GLfloat), mallocFailAbort,
+    //      (GLfloat *)DEFENSE_MALLOC(3 * sizeof(GLfloat), mallocFailAbort,
     //      NULL);
     //  re->uv[i] =
-    //      (GLfloat *)defenseMalloc(2 * sizeof(GLfloat), mallocFailAbort,
+    //      (GLfloat *)DEFENSE_MALLOC(2 * sizeof(GLfloat), mallocFailAbort,
     //      NULL);
 
     re->position[i] =
-        (double *)defenseMalloc(3 * sizeof(double), mallocFailAbort, NULL);
+        (double *)DEFENSE_MALLOC(3 * sizeof(double), mallocFailAbort, NULL);
     re->uv[i] =
-        (double *)defenseMalloc(2 * sizeof(double), mallocFailAbort, NULL);
+        (double *)DEFENSE_MALLOC(2 * sizeof(double), mallocFailAbort, NULL);
   }
 
   re->position[0][0] = 1.0f;
@@ -235,12 +237,12 @@ struct Rectangle *rectangleNew() {
   // re->yMin = 3;
 
   re->pivot = 0;
-  //  re->pivot = (GLfloat *)defenseMalloc(3 * sizeof(GLfloat));
+  //  re->pivot = (GLfloat *)DEFENSE_MALLOC(3 * sizeof(GLfloat));
   //  re->pivot[0] = 0;
   //  re->pivot[1] = 0;
   //  re->pivot[2] = 0;
 
-  re->vertexOrder = (unsigned int *)defenseMalloc(
+  re->vertexOrder = (unsigned int *)DEFENSE_MALLOC(
       re->vertexCounts * sizeof(unsigned int), mallocFailAbort, NULL);
 
   re->vertexOrder[0] = 0;
@@ -252,14 +254,14 @@ struct Rectangle *rectangleNew() {
   re->vertexOrder[5] = 0;
 
   re->vertexPosition =
-      (GLfloat *)defenseMalloc(18 * sizeof(GLfloat), mallocFailAbort, NULL);
+      (GLfloat *)DEFENSE_MALLOC(18 * sizeof(GLfloat), mallocFailAbort, NULL);
   re->vertexUV =
-      (GLfloat *)defenseMalloc(12 * sizeof(GLfloat), mallocFailAbort, NULL);
+      (GLfloat *)DEFENSE_MALLOC(12 * sizeof(GLfloat), mallocFailAbort, NULL);
   re->vertexColor =
-      (GLfloat *)defenseMalloc(18 * sizeof(GLfloat), mallocFailAbort, NULL);
+      (GLfloat *)DEFENSE_MALLOC(18 * sizeof(GLfloat), mallocFailAbort, NULL);
 
   re->vertexWireframe =
-      (GLfloat *)defenseMalloc(24 * sizeof(GLfloat), mallocFailAbort, NULL);
+      (GLfloat *)DEFENSE_MALLOC(24 * sizeof(GLfloat), mallocFailAbort, NULL);
 
   constructRectangleVertexPos(re);
   constructRectangleVertexUV(re);
