@@ -133,8 +133,8 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   ///////////////////////////////////////////////////////////////////////
 
   gchar *pattern01 = "Pattern01";
-  gchar *pattern02 = "Pattern02";
-  gchar *pattern03 = "Pattern03";
+  //gchar *pattern02 = "Pattern02";
+  //gchar *pattern03 = "Pattern03";
 
   patternTypeComboBox = gtk_combo_box_text_new();
   gtk_widget_set_size_request(patternTypeComboBox, CONTROL_BOX_WIDTH, 35);
@@ -145,11 +145,11 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(patternTypeComboBox),
                                  pattern01);
 
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(patternTypeComboBox),
-                                 pattern02);
-
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(patternTypeComboBox),
-                                 pattern03);
+  //  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(patternTypeComboBox),
+  //                                 pattern02);
+  //
+  //  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(patternTypeComboBox),
+  //                                 pattern03);
 
   ///////////////////////////////////////////////////////////////////////
 
