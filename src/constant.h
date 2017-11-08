@@ -12,7 +12,7 @@
 #define BOX_SPACE 5
 
 #define GL_VERSION_MAJOR 4
-#define GL_VERSION_MINOR 5
+#define GL_VERSION_MINOR 3
 
 #define VERTEX_SHADER "src/shader/vertex_shader.vert"
 #define FRAGMENT_SHADER "src/shader/fragment_shader.frag"

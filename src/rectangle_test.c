@@ -1,6 +1,6 @@
+#include "rectangle.c"
 #include "rectangle.h"
 #include <assert.h>
-#include "rectangle.c"
 
 #include <setjmp.h>
 #include <stdarg.h>

@@ -2,8 +2,8 @@
 #define PATTERN_MODEL_H
 
 #include <GL/glew.h>
-#include <gtk-3.0/gtk/gtk.h>
 #include <glib-2.0/glib.h>
+#include <gtk-3.0/gtk/gtk.h>
 
 #include "constant.h"
 #include "rectangle.h"
@@ -43,15 +43,13 @@ struct PatternModel {
 
 void patternModelRandomizeUV(struct PatternModel *pattern);
 
-void patternModelScaleUV(struct PatternModel *pattern,
-                         double scaleFactor);
+void patternModelScaleUV(struct PatternModel *pattern, double scaleFactor);
 
 void patternModelSeamlessModelConstruct(struct PatternModel *pattern,
                                         GtkGLArea *glArea);
 void patternModelInitUnitsPosition(struct PatternModel *pattern);
 
-void patternModelFitColor(struct PatternModel *pattern, double min,
-                          double max);
+void patternModelFitColor(struct PatternModel *pattern, double min, double max);
 void patternModelRandomizeColor(struct PatternModel *pattern);
 
 void patternModelRandomizeUVRotate(struct PatternModel *pattern);

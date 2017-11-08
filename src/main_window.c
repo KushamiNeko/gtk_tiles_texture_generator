@@ -133,8 +133,8 @@ static struct ControlData *initControl(GtkWindow *mainWindow,
   ///////////////////////////////////////////////////////////////////////
 
   gchar *pattern01 = "Pattern01";
-  //gchar *pattern02 = "Pattern02";
-  //gchar *pattern03 = "Pattern03";
+  // gchar *pattern02 = "Pattern02";
+  // gchar *pattern03 = "Pattern03";
 
   patternTypeComboBox = gtk_combo_box_text_new();
   gtk_widget_set_size_request(patternTypeComboBox, CONTROL_BOX_WIDTH, 35);

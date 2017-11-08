@@ -1086,8 +1086,8 @@ void patternControlTextureInfoButtonClicked(GtkButton *button, void *userData) {
     gtk_gl_area_make_current(user->glArea);
     glUseProgram(user->shaderProgram);
 
-    //GLuint *tex = &user->tex;
-    //glDeleteTextures(1, tex);
+    // GLuint *tex = &user->tex;
+    // glDeleteTextures(1, tex);
 
     gboolean result;
     result = patternDataInitTexMap(user);
